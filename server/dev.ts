@@ -1,0 +1,11 @@
+import 'dotenv/config';
+import { config } from 'dotenv';
+import { createServer } from 'node:http';
+import { createServer as createViteServer } from 'vite';
+import { getRequestListener } from '@hono/node-server';
+config({path:'.env.local'});
+const {app}=await import('./app');
+const vite=await createViteServer({server:{middlewareMode:true},appType:'spa'});
+const api=getRequestListener(app.fetch);
+const server=createServer((req,res)=>req.url?.startsWith('/api/')?api(req,res):vite.middlewares(req,res));
+server.listen(Number(process.env.PORT??5173),'127.0.0.1',()=>console.log('create disponível em http://127.0.0.1:5173'));

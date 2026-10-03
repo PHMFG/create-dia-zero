@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.server/
+.env
+.env.*
+!.env.example
+.vercel/
+artifacts/
+playwright-report/
+test-results/

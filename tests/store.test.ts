@@ -98,6 +98,25 @@ describe('guest API and local store', () => {
     expect(await store.list(s)).toHaveLength(3);
   });
 
+  it('maps only the exact database project-cap error to 429', async () => {
+    const sessionWithInsertError = (insertError: { code: string; message: string } | null): store.StoreSession => {
+      const query = {
+        select: () => query,
+        order: () => query,
+        limit: async () => ({ data: [], error: null }),
+        insert: async () => ({ error: insertError }),
+      };
+      return { owner: owner(), db: { from: () => query } as unknown as store.StoreSession['db'] };
+    };
+
+    await expect(store.insert(sessionWithInsertError({ code: 'P0001', message: 'project limit reached' }), createProject('Limite Supabase')))
+      .rejects.toMatchObject({ status: 429 });
+    await expect(store.insert(sessionWithInsertError({ code: 'P0001', message: 'other database rule' }), createProject('Regra do banco')))
+      .rejects.toMatchObject({ status: 503 });
+    await expect(store.insert(sessionWithInsertError({ code: '08006', message: 'connection failure' }), createProject('Banco indisponível')))
+      .rejects.toMatchObject({ status: 503 });
+  });
+
   it('allows one active generation per project and only matching completion unlocks it', async () => {
     const s = { owner: owner() }; const project = createProject('Uma agência de viagens');
     await store.insert(s, project);

@@ -2,38 +2,46 @@
 
 Aplicativo público: https://create-dia-zero.vercel.app
 
-Publicação Vercel: `dpl_F4pWew18bnTaqV5Lv4T5YvfJJBbm`, região `gru1`.
+Publicação Vercel: `dpl_HLvpMSnYepZNyNjYd33nY5b1wSgE`, estado READY; API na região `gru1`.
 
 ## Código e dados
 
-- 74 testes automatizados aprovados em quatro arquivos: contratos da IA, atualizações do canvas, persistência/cotas e integração entre edições locais e a resposta da IA.
-- TypeScript e build de produção aprovados, incluindo o bundle Node.js da API.
-- Políticas de acesso e reservas executadas no banco Supabase com transação desfeita. A verificação está detalhada em `verification-db.md`.
-- Chaves privadas ausentes do bundle do navegador; `.env.local`, `.vercel`, artefatos de verificação e arquivos gerados excluídos da entrega de fontes.
+- 153 testes automatizados aprovados em nove arquivos; TypeScript e build de produção aprovados, incluindo o bundle Node.js da API.
+- Três subagentes Luna revisaram interface, integração de dados e API. Corrigidos preservação de perguntas antes da aceitação, recuperação do autosave, merge por IDs de blocos/itens e resposta 429 ao limite transacional de projetos.
+- Regressões de IA verificam conexões estruturais atômicas, preservação de contexto humano entre deltas, estados de ferramentas, síntese de pesquisa e heartbeat SSE. O consumidor de SSE cobre UTF-8 fragmentado, CRLF, comentários, cancelamento, erro de rede e ausência de conclusão.
+- Políticas de acesso e reservas executadas anteriormente no banco Supabase com transação desfeita; detalhes em `verification-db.md`. Produção novamente verificada com duas sessões de visitante independentes.
+- Busca pelos valores exatos das três credenciais privadas configuradas em 64 arquivos de fontes/bundle: nenhum vazamento encontrado. Ambientes, artefatos e diretórios gerados permanecem ignorados.
 
 ## Fluxo real em produção
 
-`npx tsx scripts/smoke-api.ts https://create-dia-zero.vercel.app` concluiu com modo `live`, sete cartões e uma proposta de revisão. O cenário usa dados fictícios e apaga os projetos de teste ao terminar.
+`npx tsx scripts/smoke-api.ts https://create-dia-zero.vercel.app` concluiu em modo `live`, com seis cartões, oito fontes e uma proposta. Dados fictícios; os projetos do smoke são apagados ao terminar.
 
-Os dez critérios passaram:
+Os treze critérios passaram:
 
 1. Health público e provedores configurados.
-2. API privada nega requisições sem autenticação.
-3. Outro visitante não acessa o projeto, pela API nem pela política RLS.
-4. A IA acrescenta cartões ao canvas a partir da primeira ideia.
-5. Texto e checklist editados persistem; gravação com versão antiga é rejeitada.
-6. Experiência registrada é persistida separadamente das hipóteses.
-7. Resposta real de DeepSeek/Jev por SSE preserva edições humanas.
-8. Mini chat mantém mensagens associadas ao cartão escolhido.
-9. Resultado da IA está salvo antes do evento de conclusão da resposta.
-10. Importação JSON cria um projeto independente.
+2. API privada rejeita acesso sem autenticação.
+3. Outra sessão não acessa o projeto pela API nem pelo RLS.
+4. A IA cria cartões a partir da ideia.
+5. Deltas chegam por SSE e estão persistidos antes da resposta final.
+6. Cartões aparecem individualmente, com atividades identificadas e grafo válido.
+7. Edições de texto/checklist persistem; versões antigas são rejeitadas.
+8. Experiência é registrada separadamente da hipótese.
+9. DeepSeek/Jev respondem por SSE preservando edições humanas.
+10. Mini chat mantém o contexto do cartão.
+11. A resposta está salva antes do evento de conclusão.
+12. Pesquisa real publica links, imagens retornadas e a região informada.
+13. Importação JSON cria um projeto independente.
 
-Um cenário real adicional de três conversas confirmou o crescimento do canvas de um para três e depois seis cartões, seguido de esclarecimento de uma ação sem duplicar cartões.
+Os três primeiros cartões da IA foram publicados em aproximadamente 11,5–11,9 segundos. Na pesquisa, as fontes apareceram em 7 segundos, foram enriquecidas em 10 segundos e a síntese chegou à mesma nota em 28 segundos. A nota terminou com status `ready`, resumo interpretativo e parágrafos vinculados às fontes. Tavily está ativo em produção, com chave apenas no servidor.
 
-## Interface
+## Interface e fila
 
-Verificação visual em desktop e celular: barra de projetos recolhível, cabeçalho compacto, controles flutuantes de canvas/lista, ausência dos títulos e aviso horizontal removidos, mini chat específico por cartão. Checklist, orçamento e posições arrastadas foram conferidos após recarregar.
+No navegador, duas perguntas enviadas durante a mesma execução foram respondidas automaticamente na ordem correta, localmente e na versão pública, sem erro de stream. A fila exibe destino e perguntas pendentes, permite remoção e pausa ao interromper. Pendências são guardadas no sessionStorage e reaparecem pausadas após recarregar; não é uma fila compartilhada entre dispositivos.
 
-## Limite atual
+Conferidos em desktop e celular: fontes ampliadas, cabeçalho compacto, barra recolhível, controles flutuantes, canvas/lista no celular, mídias e localização, mini chat por cartão e Sobre com Visualizar/Editar. Uma edição por bloco e uma checklist permaneceram após recarregar. Enviar com um título vazio preservou a pergunta; corrigir o título eliminou o alerta antigo após salvar.
 
-Pesquisa externa automática aguarda `TAVILY_API_KEY`. A integração está preparada, mas as respostas atuais não alegam consulta à web nem inventam fontes. Os 30 cenários qualitativos de `tests/ai-evaluation.json` são um roteiro para avaliação futura, não 30 execuções reais do modelo.
+O servidor local deixou de reiniciar automaticamente durante alterações de backend; `dev:watch` é opcional. Comentários SSE periódicos mantêm a conexão durante chamadas demoradas. A captura `artifacts/public-prompt-queue.png` registra a fila no aplicativo público.
+
+## Escopo da avaliação
+
+Os 30 cenários de `tests/ai-evaluation.json` continuam sendo um roteiro, não 30 execuções reais do modelo. Ajustes secundários foram adiados a pedido do usuário; a publicação priorizou falhas emergenciais e a fila de perguntas.

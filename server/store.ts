@@ -47,6 +47,7 @@ export async function insert(s: StoreSession, p: Project): Promise<Project> {
   }
   if ((await list(s)).length >= 3) throw new HttpError(429, 'Você já tem três projetos. Exporte e remova um para criar outro.');
   const { error } = await s.db.from('create_projects').insert({ id:p.id, owner_id:s.owner, document:p, version:p.version, updated_at:p.updatedAt });
+  if (error?.code === 'P0001' && error.message === 'project limit reached') throw new HttpError(429, 'Você já tem três projetos. Exporte e remova um para criar outro.');
   if (error) throw new HttpError(503, 'Não foi possível salvar o novo projeto.');
   return p;
 }

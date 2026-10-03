@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createProject, makeCard } from '../shared/domain';
-import { calculate, ensureCanvasCoverage, generateTurn, parseJsonReply, providerErrorCode, routeTurn, sanitizeTurn } from '../server/ai';
+import { applyHumanEdit, applyTurn, createProject, makeCard } from '../shared/domain';
+import { buildResearchSummaryOperation, calculate, decodeReplyPrefix, ensureCanvasCoverage, ensureResearchSynthesis, generateTurn, hasResearchSynthesis, parseJsonReply, providerErrorCode, PublicationLedger, publishCanvasSequentially, routeTurn, runToolActivity, sanitizeTurn, splitCanvasPublication } from '../server/ai';
 import { buildContextPacket, buildInstructions } from '../server/prompts';
 import { isPublicUrl, ResearchSession } from '../server/research';
-import type { CanvasCard, Source, TurnResult } from '../shared/types';
+import type { AgentActivity, CanvasCard, CanvasDelta, Project, Source, TurnResult } from '../shared/types';
+import { auditDependencyGraph } from '../shared/canvasConnections';
 
 const source: Source = { id: 'real-source', title: 'Fonte recuperada', url: 'https://example.org/referencia', excerpt: 'Texto consultado pelo servidor.', consultedAt: '2026-10-03T12:00:00.000Z', verified: true };
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
@@ -173,6 +174,254 @@ describe('server calculator', () => {
     expect(calculate('percentage', [300, 10])).toBe(30);
     expect(() => calculate('divide', [300, 0])).toThrow(/zero/);
     expect(() => calculate('percentage', [300])).toThrow(/finito/);
+  });
+});
+
+describe('incremental publication and media provenance', () => {
+  it('decodes partial real reply chunks without exposing tool data or incomplete escapes', () => {
+    expect(decodeReplyPrefix('{"reply":"Ol')).toBe('Ol');
+    expect(decodeReplyPrefix('{"reply":"Olá\\nLinha \\"dois\\"","operations":[{}]}')).toBe('Olá\nLinha "dois"');
+    expect(decodeReplyPrefix('{"reply":"Olá\\u00')).toBeUndefined();
+    expect(decodeReplyPrefix('{"operations":[{"reply":"dado do cartão"}]}')).toBeUndefined();
+    expect(decodeReplyPrefix('{"contextPatch":{},"operations":[{"reply":"dado do cartão"}],"reply":"Resposta parcial')).toBe('Resposta parcial');
+  });
+  it('removes acknowledged operations and context from the final result, including proposals', () => {
+    const ledger = new PublicationLedger();
+    const document = makeCard('note', 'Teste', 'Nota', []);
+    const add = { op: 'add' as const, cardId: document.id, card: document };
+    const update = { op: 'update' as const, cardId: 'original', expectedRevision: 0, patch: { summary: 'Conteúdo ampliado.' } };
+    ledger.remember({ contextPatch: { budget: 'R$ 300' }, operations: [add, update], sources: [] });
+    const stripped = ledger.strip({ reply: 'Concluído', contextPatch: { budget: 'R$ 300', city: 'Porto Alegre' }, operations: [add, { ...update, expectedRevision: 1 }], proposal: { title: 'Mudança', reason: 'Revisão', operations: [update] } }) as TurnResult;
+    expect(stripped.operations).toEqual([]);
+    expect(stripped.contextPatch).toEqual({ city: 'Porto Alegre' });
+    expect(stripped.proposal).toBeUndefined();
+    expect(ledger.aggregate({ ...stripped, mode: 'live', sources: [] }).operations).toHaveLength(2);
+  });
+  it('does not reapply content when its first publication also supplied an automatic relation', () => {
+    const ledger = new PublicationLedger();
+    ledger.remember({ operations: [{ op: 'update', cardId: 'resources', expectedRevision: 1, patch: { summary: 'Limite de R$ 300.', dependsOn: ['context'] } }], sources: [] });
+    const replay = ledger.strip({ reply: 'Concluído.', operations: [{ op: 'update', cardId: 'resources', expectedRevision: 2, patch: { summary: 'Limite de R$ 300.' } }] }) as TurnResult;
+    expect(replay.operations).toEqual([]);
+    const newRelation = ledger.strip({ reply: 'Nova relação.', operations: [{ op: 'update', cardId: 'resources', expectedRevision: 2, patch: { summary: 'Limite de R$ 300.', dependsOn: ['hypothesis'] } }] }) as TurnResult;
+    expect(newRelation.operations).toHaveLength(1);
+  });
+  it('allows provider-returned images and explicit user links while rejecting invented media', () => {
+    const project = createProject('Referência fornecida: https://example.org/user-reference');
+    const imageSource = { ...source, imageUrl: 'https://example.org/provider-image.webp' };
+    const media = makeCard('research', 'Referências', 'Conteúdo real', [{ id: 'image', type: 'image', url: imageSource.imageUrl, alt: 'Imagem retornada na consulta', sourceIds: [source.id] }, { id: 'user-link', type: 'link', url: 'https://example.org/user-reference', text: 'Referência fornecida pela pessoa' }]);
+    expect(sanitizeTurn({ reply: 'Organizado.', operations: [{ op: 'add', cardId: media.id, card: media }] }, project, [imageSource]).operations[0].card?.blocks[0].url).toBe(imageSource.imageUrl);
+    media.blocks[0].url = 'https://invented.example/image.jpg';
+    expect(() => sanitizeTurn({ reply: 'Organizado.', operations: [{ op: 'add', cardId: media.id, card: media }] }, project, [imageSource])).toThrow(/procedência/);
+  });
+  it('uses known addresses without inventing geographic coordinates', () => {
+    const project = createProject('Loja em Porto Alegre'); project.context.city = 'Porto Alegre';
+    const location = makeCard('note', 'Onde investigar', 'Local informado.', [{ id: 'location', type: 'location', address: 'Porto Alegre', latitude: -30.0346, longitude: -51.2177 }]);
+    const block = sanitizeTurn({ reply: 'Local registrado.', operations: [{ op: 'add', cardId: location.id, card: location }] }, project).operations[0].card?.blocks[0];
+    expect(block?.address).toBe('Porto Alegre'); expect(block?.latitude).toBeUndefined(); expect(block?.longitude).toBeUndefined();
+    location.blocks[0].address = 'Rua Inventada, 123';
+    expect(() => sanitizeTurn({ reply: 'Local registrado.', operations: [{ op: 'add', cardId: location.id, card: location }] }, project)).toThrow(/endereço/);
+  });
+  it.each(['user-origin', 'edited-card', 'edited-block'] as const)('preserves existing human media only in its own card (%s)', ownership => {
+    const project = createProject('Uma ideia para testar.');
+    const reference = makeCard('note', 'Referências manuais', 'Material informado pela pessoa.', [
+      { id: 'manual-link', type: 'link', url: 'https://manual.example/reference', text: 'Referência: https://manual.example/reference' },
+      { id: 'manual-image', type: 'image', url: 'https://manual.example/photo', alt: 'Foto fornecida pela pessoa' },
+      { id: 'manual-place', type: 'location', address: 'Rua da Oficina, 42', latitude: -30.1234, longitude: -51.4321 },
+    ]);
+    if (ownership === 'user-origin') reference.origin = 'user';
+    if (ownership === 'edited-card') reference.humanEdited = true;
+    if (ownership === 'edited-block') for (const block of reference.blocks) block.humanEdited = true;
+    project.cards.push(reference);
+    const update = { op: 'update' as const, cardId: reference.id, patch: { blocks: structuredClone(reference.blocks) } };
+    const preserved = sanitizeTurn({ reply: 'Referências mantidas.', operations: [update] }, project).operations[0].patch?.blocks;
+    expect(preserved?.[0].url).toBe(reference.blocks[0].url);
+    expect(preserved?.[1].url).toBe(reference.blocks[1].url);
+    expect(preserved?.[2]).toMatchObject({ address: 'Rua da Oficina, 42', latitude: -30.1234, longitude: -51.4321 });
+    expect(preserved?.every(block => block.humanEdited === undefined)).toBe(true);
+    update.patch.blocks[1] = { ...update.patch.blocks[1], url: 'https://invented.example/new-photo', humanEdited: true };
+    expect(() => sanitizeTurn({ reply: 'Atualizado.', operations: [update] }, project)).toThrow(/procedência/);
+  });
+  it('does not authorize generated links or coordinates from a different human card', () => {
+    const project = createProject('Uma ideia em Porto Alegre.'); project.context.city = 'Porto Alegre';
+    const manual = makeCard('note', 'Meu local', 'Fornecido pela pessoa.', [
+      { id: 'manual-link', type: 'link', url: 'https://manual.example/private-reference' },
+      { id: 'manual-place', type: 'location', latitude: -30.1234, longitude: -51.4321 },
+    ]);
+    manual.origin = 'user'; project.cards.push(manual);
+    const generated = makeCard('note', 'Pesquisa', 'Outro cartão.', [{ id: 'generated-link', type: 'link', url: manual.blocks[0].url, humanEdited: true }]);
+    expect(() => sanitizeTurn({ reply: 'Organizado.', operations: [{ op: 'add', cardId: generated.id, card: generated }] }, project)).toThrow(/procedência/);
+    generated.blocks = [{ id: 'generated-place', type: 'location', address: 'Porto Alegre', latitude: manual.blocks[1].latitude, longitude: manual.blocks[1].longitude, humanEdited: true }];
+    const location = sanitizeTurn({ reply: 'Local informado.', operations: [{ op: 'add', cardId: generated.id, card: generated }] }, project).operations[0].card?.blocks[0];
+    expect(location?.address).toBe('Porto Alegre');
+    expect(location?.latitude).toBeUndefined(); expect(location?.longitude).toBeUndefined();
+  });
+});
+
+describe('visible tool execution and ordered publications', () => {
+  it('acknowledges a running activity before executing and completes the same ID afterward', async () => {
+    const states: string[] = []; const activities: AgentActivity[] = [];
+    const result = await runToolActivity({ onActivity: async activity => { await Promise.resolve(); activities.push(activity); states.push(activity.state); } }, 'read_project_item', 'Ler anotação: Convite', async () => { expect(states).toEqual(['running']); states.push('execute'); return { found: true }; }, ['card-invite']);
+    expect(result.found).toBe(true); expect(states).toEqual(['running', 'execute', 'completed']);
+    expect(activities[0].id).toBe(activities[1].id); expect(activities[0].cardIds).toEqual(['card-invite']);
+    expect(activities[1].label).toBe('Ler anotação: Convite');
+  });
+  it('closes both reported failures and thrown errors without leaking error payloads', async () => {
+    const activities: AgentActivity[] = []; const options = { onActivity: (activity: AgentActivity) => { activities.push(activity); } };
+    await runToolActivity(options, 'search_web', 'Pesquisar fontes', async () => ({ status: 'unavailable' }));
+    expect(activities.map(activity => activity.state)).toEqual(['running', 'failed']);
+    activities.length = 0;
+    await expect(runToolActivity(options, 'publish_canvas', 'Salvar anotação: Teste', async () => { throw new Error('private provider payload'); })).rejects.toThrow('private provider payload');
+    expect(activities.map(activity => activity.state)).toEqual(['running', 'failed']);
+    expect(JSON.stringify(activities)).not.toContain('private provider payload');
+  });
+  it('publishes one card at a time with prerequisites first and preserves specific names', async () => {
+    const project = createProject('Aulas de desenho');
+    const hypothesis = makeCard('hypothesis', 'Iniciantes travam na primeira folha', 'Hipótese a investigar.', []);
+    const action = makeCard('action', 'Ouvir a última experiência de desenho', 'Teste específico.', [], 'now');
+    const result = sanitizeTurn({ reply: 'Organizado.', operations: [{ op: 'add', cardId: action.id, card: action }, { op: 'add', cardId: hypothesis.id, card: hypothesis }] }, project);
+    expect(result.operations[0].card?.dependsOn).toEqual([hypothesis.id]);
+    expect(result.operations[1].card?.dependsOn).toEqual([project.cards[0].id]);
+    const deltas: CanvasDelta[] = []; const activities: AgentActivity[] = []; let saved = project;
+    await publishCanvasSequentially({ operations: result.operations, sources: [] }, project, async delta => { deltas.push(delta); saved = applyTurn(saved, { ...delta, reply: 'Atualização de teste.', mode: 'live' }, saved.context); saved.messages = []; return saved; }, { onActivity: activity => { activities.push(activity); } });
+    expect(deltas.map(delta => delta.operations.map(operation => operation.cardId))).toEqual([[hypothesis.id], [action.id]]);
+    expect(activities.filter(activity => activity.state === 'completed').map(activity => activity.label)).toEqual(['Salvar anotação: Iniciantes travam na primeira folha', 'Salvar anotação: Ouvir a última experiência de desenho']);
+    expect(auditDependencyGraph(saved.cards).valid).toBe(true);
+    expect(saved.cards.find(card => card.id === action.id)?.dependsOn).toEqual([hypothesis.id]);
+  });
+  it('keeps action priority changes in one reviewable group', () => {
+    const project = createProject('Aulas de desenho');
+    const current = makeCard('action', 'Ouvir iniciantes', 'Ação atual.', [], 'now'); project.cards.push(current);
+    const replacement = makeCard('action', 'Testar a aula piloto', 'Ação proposta.', [], 'now');
+    const delta: CanvasDelta = { operations: [{ op: 'update', cardId: current.id, expectedRevision: 0, patch: { lane: 'next' } }, { op: 'add', cardId: replacement.id, card: replacement }], sources: [] };
+    expect(splitCanvasPublication(delta, project)).toHaveLength(1);
+    expect(splitCanvasPublication(delta, project)[0].operations).toHaveLength(2);
+  });
+  it('keeps a valid reversal of existing connections atomic, avoiding a temporary cycle', async () => {
+    const project = createProject('Aulas de desenho');
+    const second = makeCard('note', 'B: material de base', '', []);
+    const first = makeCard('note', 'A: documento dependente', '', [], 'next', [second.id]); project.cards.push(first, second);
+    const corrected = sanitizeTurn({ reply: 'Relações corrigidas.', operations: [{ op: 'update', cardId: second.id, expectedRevision: 0, patch: { dependsOn: [first.id] } }, { op: 'update', cardId: first.id, expectedRevision: 0, patch: { dependsOn: [] } }] }, project);
+    const publications: CanvasDelta[] = []; const activities: AgentActivity[] = [];
+    const saved = await publishCanvasSequentially({ operations: corrected.operations, sources: [] }, project, async delta => { publications.push(delta); const result = applyTurn(project, { ...delta, reply: 'Revisão de teste.', mode: 'live' }, project.context); result.messages = []; return result; }, { onActivity: activity => { activities.push(activity); } });
+    expect(publications).toHaveLength(1); expect(publications[0].operations).toHaveLength(2);
+    expect(saved.cards.find(card => card.id === first.id)?.dependsOn).toEqual([]);
+    expect(saved.cards.find(card => card.id === second.id)?.dependsOn).toEqual([first.id]);
+    expect(auditDependencyGraph(saved.cards).valid).toBe(true);
+    expect(activities[0].label).toBe('Atualizar conexões: B: material de base · A: documento dependente');
+  });
+  it.each([false, true])('rebases only its own revision changes, preserving concurrent human content (%s)', async humanEdit => {
+    const project = createProject('Aulas de desenho');
+    const action = makeCard('action', 'Convidar iniciantes', 'Ação original.', [], 'now'); project.cards.push(action);
+    const resource = makeCard('note', 'Recursos do teste', 'Usar R$ 300.', []);
+    const delta: CanvasDelta = { contextPatch: { budget: 'R$ 300' }, operations: [{ op: 'add', cardId: resource.id, card: resource }, { op: 'update', cardId: action.id, expectedRevision: 0, patch: { summary: 'Convide antes de investir.' } }], sources: [] };
+    let latest = project; let calls = 0;
+    const saved = await publishCanvasSequentially(delta, project, async step => {
+      const updated = applyTurn(latest, { ...step, reply: 'Atualização de teste.', mode: 'live' }, latest.context); updated.messages = []; latest = updated;
+      if (++calls === 1 && humanEdit) latest = applyHumanEdit(latest, latest.cards.map(card => card.id === action.id ? { ...card, summary: 'Texto escrito pela pessoa durante a geração.' } : card));
+      return latest;
+    });
+    expect(saved.cards.find(card => card.id === action.id)?.summary).toBe(humanEdit ? 'Texto escrito pela pessoa durante a geração.' : 'Convide antes de investir.');
+    expect(saved.proposals).toHaveLength(humanEdit ? 1 : 0);
+    expect(saved.cards.filter(card => card.id === resource.id)).toHaveLength(1);
+  });
+});
+
+describe('coherent AI canvas relations', () => {
+  const add = (card: CanvasCard) => ({ op: 'add' as const, cardId: card.id, card });
+  it('connects research, evidence and decisions only to actual relevant prerequisites', () => {
+    const project = createProject('Aulas de desenho');
+    const hypothesis = makeCard('hypothesis', 'Iniciantes sem rotina', '', []); const action = makeCard('action', 'Ouvir iniciantes', '', [], 'now');
+    const research = makeCard('research', 'Fontes sobre a rotina', '', []); const evidence = makeCard('evidence', 'Relatos das conversas', '', []); const decision = makeCard('decision', 'Escolher o próximo teste', '', []);
+    const result = sanitizeTurn({ reply: 'Organizado.', operations: [hypothesis, action, research, evidence, decision].map(add) }, project);
+    expect(result.operations.map(operation => operation.card?.dependsOn)).toEqual([[project.cards[0].id], [hypothesis.id], [hypothesis.id], [action.id], [evidence.id]]);
+    expect(auditDependencyGraph([...project.cards, ...result.operations.map(operation => operation.card!)]).valid).toBe(true);
+    const loneDecision = sanitizeTurn({ reply: 'Rascunho.', operations: [add(makeCard('decision', 'Decisão a investigar', '', []))] }, project);
+    expect(loneDecision.operations[0].card?.dependsOn).toEqual([]);
+  });
+  it('rejects nonexistent prerequisites, self references and cycles rather than hiding them', () => {
+    const project = createProject('Aulas de desenho'); const card = makeCard('hypothesis', 'Hipótese', '', []);
+    card.dependsOn = ['invented']; expect(() => sanitizeTurn({ reply: 'Plano.', operations: [add(card)] }, project)).toThrow(/não está mais/);
+    card.dependsOn = [card.id]; expect(() => sanitizeTurn({ reply: 'Plano.', operations: [add(card)] }, project)).toThrow(/dele mesmo/);
+    const other = makeCard('action', 'Teste', '', []); card.dependsOn = [other.id]; other.dependsOn = [card.id];
+    expect(() => sanitizeTurn({ reply: 'Plano.', operations: [add(card), add(other)] }, project)).toThrow(/ciclo/);
+  });
+  it('preserves human connections and leaves ambiguous automatic action links absent', () => {
+    const project = createProject('Aulas de desenho');
+    const first = makeCard('hypothesis', 'Rotina', '', []); const second = makeCard('hypothesis', 'Materiais', '', []); project.cards.push(first, second);
+    const human = makeCard('note', 'Conexão feita pela pessoa', '', [], 'next', [second.id]); human.humanEdited = true; project.cards.push(human);
+    const result = sanitizeTurn({ reply: 'Ampliado.', operations: [{ op: 'update', cardId: human.id, patch: { dependsOn: [], summary: 'Novo parágrafo.' } }, add(makeCard('action', 'Investigar a ideia', '', []))] }, project);
+    expect(result.operations[0].patch?.dependsOn).toEqual([second.id]); expect(result.operations[1].card?.dependsOn).toEqual([]);
+    expect(project.cards.find(card => card.id === human.id)?.dependsOn).toEqual([second.id]);
+  });
+  it('allows explicit correction or removal of AI-owned relations without inventing a replacement', () => {
+    const project = createProject('Aulas de desenho');
+    const first = makeCard('hypothesis', 'Rotina', '', []); const second = makeCard('hypothesis', 'Materiais', '', []);
+    const action = makeCard('action', 'Investigar materiais', '', [], 'now', [first.id]); project.cards.push(first, second, action);
+    const corrected = sanitizeTurn({ reply: 'Corrigido.', operations: [{ op: 'update', cardId: action.id, patch: { dependsOn: [second.id] } }] }, project);
+    expect(corrected.operations[0].patch?.dependsOn).toEqual([second.id]);
+    const removed = sanitizeTurn({ reply: 'Removido.', operations: [{ op: 'update', cardId: action.id, patch: { dependsOn: [] } }] }, project);
+    expect(removed.operations[0].patch?.dependsOn).toEqual([]);
+  });
+  it('connects resource documents to context and focused notes to their actual conversation', () => {
+    const project = createProject('Aulas de desenho');
+    const resources = makeCard('note', 'Recursos e limites do teste', 'Orçamento informado de R$ 300.', []);
+    expect(sanitizeTurn({ reply: 'Registrado.', operations: [add(resources)] }, project).operations[0].card?.dependsOn).toEqual([project.cards[0].id]);
+    const action = makeCard('action', 'Convidar para a aula', '', [], 'now'); project.cards.push(action);
+    const invitation = makeCard('note', 'Texto do convite para a aula', '', []);
+    expect(sanitizeTurn({ reply: 'Convite preparado.', operations: [add(invitation)] }, project, [], action.id).operations[0].card?.dependsOn).toEqual([action.id]);
+  });
+});
+
+describe('completed research requires a grounded synthesis', () => {
+  const findings = () => ({ title: 'O que investigar antes de comprar materiais', summary: 'Orientações recuperadas para organizar conversas antes de investir, com limites claros do que ainda não sabemos.', findings: [{ text: 'A fonte consultada orienta investigar comportamentos recentes antes de investir, usando as respostas como ponto de partida para um teste pequeno, sem declarar a demanda comprovada.', sourceIds: [source.id] }], implications: 'Para este cenário fictício, a orientação sugere conversar sobre a última compra antes de escolher estoque. Essa aplicação é uma inferência para o projeto.', limitations: 'A consulta não oferece preços locais, fornecedores ou prova de demanda. Esses pontos precisam de nova evidência e não podem ser tratados como fatos confirmados.' });
+  const setupResearch = () => {
+    const project = createProject('Cenário fictício de aulas de desenho');
+    const actualSource = { ...source, imageUrl: 'https://example.org/reference-photo.webp' };
+    const note = makeCard('research', 'Fontes em análise', 'Fontes recuperadas; síntese ainda não concluída.', [
+      { id: 'live-research-description', type: 'paragraph', text: 'Referências recuperadas, análise ainda não concluída.', sourceIds: [source.id] },
+      { id: 'live-research-sources', type: 'sources', sourceIds: [source.id] },
+      { id: 'live-research-link', type: 'link', url: source.url, sourceIds: [source.id] },
+      { id: 'live-research-image', type: 'image', url: actualSource.imageUrl, alt: 'Imagem retornada pelo provedor', sourceIds: [source.id] },
+      { id: 'live-research-location', type: 'location', address: 'Porto Alegre' },
+    ]);
+    project.context.city = 'Porto Alegre'; project.cards.push(note); project.sources.push(actualSource);
+    return { project, note, actualSource };
+  };
+  it('rejects a success claim backed only by automatically published sources', () => {
+    const { project, note, actualSource } = setupResearch();
+    const claimed: TurnResult = { reply: 'Preparei a síntese no canvas.', operations: [], sources: [actualSource], mode: 'live' };
+    expect(hasResearchSynthesis(note, [actualSource])).toBe(false);
+    expect(() => ensureResearchSynthesis(claimed, project, [actualSource], note.id)).toThrow(/sem síntese/);
+  });
+  it('maps model-written findings to the same note while preserving real media and location', () => {
+    const { project, note, actualSource } = setupResearch();
+    const operation = buildResearchSummaryOperation(project, note.id, findings(), [actualSource]);
+    const result = sanitizeTurn({ reply: 'Síntese preparada.', operations: [operation] }, project, [actualSource]);
+    expect(result.operations[0].cardId).toBe(note.id);
+    expect(operation.patch?.blocks?.find(block => block.id === 'live-research-image')?.url).toBe(actualSource.imageUrl);
+    expect(operation.patch?.blocks?.find(block => block.id === 'live-research-location')?.address).toBe('Porto Alegre');
+    expect(operation.patch?.blocks?.some(block => block.id === 'live-research-description')).toBe(false);
+    expect(() => ensureResearchSynthesis(result, project, [actualSource], note.id)).not.toThrow();
+    const saved = applyTurn(project, result);
+    expect(saved.cards).toHaveLength(project.cards.length); expect(hasResearchSynthesis(saved.cards.find(card => card.id === note.id), [actualSource])).toBe(true);
+  });
+  it('keeps human-edited synthesis as a proposal and rejects invented source IDs', () => {
+    const { project, note, actualSource } = setupResearch(); note.humanEdited = true;
+    const operation = buildResearchSummaryOperation(project, note.id, findings(), [actualSource]);
+    const saved = applyTurn(project, { reply: 'Proposta de síntese.', operations: [operation], sources: [actualSource], mode: 'live' });
+    expect(saved.cards.find(card => card.id === note.id)?.summary).toBe(note.summary); expect(saved.proposals).toHaveLength(1);
+    expect(() => ensureResearchSynthesis({ reply: 'Revise a proposta.', operations: [], sources: [], mode: 'live' }, saved, [actualSource], note.id)).not.toThrow();
+    const invented = findings(); invented.findings[0].sourceIds = ['invented'];
+    expect(() => buildResearchSummaryOperation(project, note.id, invented, [actualSource])).toThrow(/fonte inexistente/);
+  });
+  it('preserves source attribution from list items and rejects fake references in those items', () => {
+    const project = createProject('Cenário de teste');
+    const card = makeCard('research', 'Referências do teste', 'Pesquisa organizada com fontes reais e limites claros.', []);
+    const input = { reply: 'Organizado.', operations: [{ op: 'add', cardId: card.id, card: { ...card, blocks: [{ id: 'finding-list', type: 'list', items: [{ text: 'Uma orientação da fonte que ajuda a organizar o teste antes de investir recursos, sem inferir demanda confirmada.', sourceIds: [source.id] }] }] } }] };
+    const block = sanitizeTurn(input, project, [source]).operations[0].card?.blocks[0];
+    expect(block?.sourceIds).toEqual([source.id]); expect(block?.items?.[0].checked).toBe(false);
+    input.operations[0].card.blocks[0].items[0].sourceIds = ['invented'];
+    expect(() => sanitizeTurn(input, project, [source])).toThrow(/fonte inexistente/);
   });
 });
 

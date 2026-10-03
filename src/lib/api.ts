@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type {Project,Health,StreamEvent,Evidence} from '../../shared/types';
+import { consumeEventStream } from './eventStream';
 let client:SupabaseClient|undefined;let localToken='';let initializing:Promise<void>|undefined;
 export class ApiError extends Error { constructor(public status:number,message:string){super(message);this.name='ApiError';} }
 async function init(){
@@ -28,10 +29,6 @@ export const api={
     const response=await fetch(`/api/projects/${id}/messages`,{method:'POST',headers:await headers(),body:JSON.stringify({text,runId:crypto.randomUUID(),evidence:options?.evidence,cardId:options?.cardId}),signal});
     if(!response.ok){const error=await response.json();throw new ApiError(response.status,error.error??'Não foi possível enviar sua mensagem.');}
     const reader=response.body?.getReader();if(!reader)throw new Error('A resposta não pôde ser aberta.');
-    const decoder=new TextDecoder();let pending='';let completed=false;
-    for(;;){const {done,value}=await reader.read();if(done)break;pending+=decoder.decode(value,{stream:true});const events=pending.split(/\r?\n\r?\n/);pending=events.pop()??'';
-      for(const packet of events){const data=packet.split(/\r?\n/).filter(l=>l.startsWith('data:')).map(l=>l.slice(5).trimStart()).join('\n');if(!data)continue;const event=JSON.parse(data) as StreamEvent;onEvent(event);if(event.type==='complete')completed=true;if(event.type==='error')throw new Error(event.error);}
-    }
-    if(!completed&&!signal?.aborted)throw new Error('A conexão foi interrompida. Reabra o projeto para conferir o que foi salvo.');
+    await consumeEventStream(reader,onEvent,signal);
   }
 };

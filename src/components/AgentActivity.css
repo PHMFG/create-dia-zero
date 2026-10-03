@@ -1,0 +1,15 @@
+.agent-activity { margin: 12px 0 22px 30px; border: 1px solid #e9def2; border-radius: 12px; background: #fcf9ff; padding: 13px 14px; font-size: 13px; color: #765486; }
+.agent-activity > header { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.agent-activity > header strong { font-size: 13px; font-weight: 500; color: #78508d; }
+.agent-activity > header > span { font-size: 12px; color: #977ca6; }
+.agent-activity ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 11px; }
+.agent-activity li { display: flex; align-items: flex-start; gap: 8px; line-height: 1.45; overflow-wrap: anywhere; }
+.agent-activity li > div { min-width: 0; flex: 1; }
+.activity-step-icon { display: flex; flex-shrink: 0; margin-top: 2px; color: #af86c5; }
+.activity-running .activity-step-icon { color: #9445ca; }
+.activity-failed .activity-step-icon { color: #b7735c; }
+.activity-card-links { display: flex; flex-wrap: wrap; gap: 5px 9px; margin-top: 3px; }
+.activity-card-links button { font-size: 12px; text-decoration: underline; text-underline-offset: 3px; color: #8a4caf; text-align: left; line-height: 1.4; padding: 3px 0; min-height: 26px; }
+.activity-expand { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #8b68a1; margin: 0 0 12px; padding: 3px 0; }
+.card-mini-chat .agent-activity { margin: 12px 0 18px; }
+@media(max-width:760px) { .agent-activity { margin-left: 0; } }

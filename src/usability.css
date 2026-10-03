@@ -1,0 +1,198 @@
+/* Readable type and compact, consistent controls across the workspace. */
+:root { font-size: 16px; --muted: #786a83; }
+.eyebrow { font-size: 12px; letter-spacing: 1.1px; color: #83718f; }
+.icon-button { width: 40px; height: 40px; }
+.icon-button.tiny { width: 30px; height: 30px; }
+.primary-button, .secondary-button { font-size: 14px; min-height: 44px; padding: 11px 16px; }
+.text-button, .subtle { font-size: 14px; }
+.workspace-header { height: 62px; padding: 0 20px; }
+.workspace-breadcrumb { gap: 12px; }
+.workspace-wordmark { font-size: 34px; }
+.project-menu-trigger { font-size: 14px; color: #644a77; min-height: 40px; }
+.workspace-header .header-export { font-size: 13px; min-height: 40px; color: #745a86; }
+.workspace-header-actions { gap: 10px; }
+.save-indicator { width: 32px; min-height: 40px; color: #778175; }
+.demo-badge { font-size: 10px; letter-spacing: .5px; padding: 5px 7px; }
+.sidebar-toggle { width: 38px; height: 40px; margin-left: -6px; color: #806394; }
+.project-dropdown { width: 340px; }
+.dropdown-menu button, .project-dropdown > button { font-size: 14px; min-height: 42px; padding: 10px; color: #6f557d; }
+.project-menu-label { font-size: 11px; color: #8a6d9e; }
+.project-menu-info { font-size: 12px; line-height: 1.55; color: #8a709b; }
+.collapsible-sidebar-head > span { font-size: 11px; letter-spacing: .7px; color: #87699a; }
+.collapsible-sidebar .new-project-button { font-size: 14px; min-height: 42px; }
+.collapsible-sidebar nav > button { font-size: 13px; min-height: 42px; padding: 10px 7px; color: #795a8e; }
+.collapsible-sidebar-bottom > button { font-size: 13px; min-height: 42px; color: #795a8e; }
+.collapsible-sidebar-bottom > p { font-size: 12px; line-height: 1.5; color: #8f789f; }
+
+.chat-panel { width: 32%; min-width: 330px; max-width: 460px; }
+.chat-messages { padding: 22px 22px 16px; }
+.chat-message { font-size: 16px; line-height: 1.65; margin-bottom: 22px; gap: 10px; }
+.message-content { color: #655271; }
+.message-user .message-content { font-size: 15px; color: #71547f; padding: 11px 13px; }
+.message-content h1, .message-content h2, .message-content h3 { font-size: 19px; line-height: 1.35; }
+.message-content code { font-size: 13px; }
+.message-content table { font-size: 13px; }
+.message-content a { color: #8040ba; }
+.message-sources a { font-size: 12px; line-height: 1.45; }
+.activity-status { font-size: 12px; line-height: 1.5; color: #887293; }
+.assistant-avatar { width: 22px; font-size: 22px; }
+.chat-welcome { font-size: 16px; line-height: 1.65; }
+.chat-welcome button { font-size: 14px; min-height: 40px; }
+.chat-composer { padding: 0 18px 16px; }
+.chat-composer form { padding: 13px 14px 10px; }
+.chat-composer textarea { font-size: 16px; line-height: 1.55; min-height: 50px; color: #675074; }
+.chat-composer textarea::placeholder { color: #947da3; }
+.chat-composer .composer-bottom > span { font-size: 12px; color: #8a719a; }
+.send-button { width: 36px; height: 36px; }
+.composer-send-actions { display: flex; gap: 8px; align-items: center; }
+.workspace-error { font-size: 13px; line-height: 1.5; }
+
+.canvas-toolbar { top: 14px; left: 16px; right: 16px; gap: 10px; }
+.canvas-toolbar .view-toggle { padding: 3px; border-radius: 10px; }
+.view-toggle button { font-size: 13px; padding: 8px 10px; min-height: 36px; color: #836495; gap: 6px; }
+.view-toggle button svg { width: 16px; height: 16px; }
+.canvas-toolbar .canvas-actions { padding: 3px 5px; gap: 4px; border-radius: 10px; }
+.canvas-actions > button, .canvas-actions .research-trigger span { font-size: 13px; color: #7a5b8c; }
+.canvas-actions > button { min-width: 36px; min-height: 36px; padding: 6px 8px; gap: 6px; }
+.canvas-actions > button svg { width: 17px; height: 17px; }
+.canvas-toolbar .toolbar-evidence { font-size: 13px; padding: 7px 9px !important; min-height: 36px !important; border-radius: 7px; color: #8651a9; }
+.review-badge { font-size: 13px !important; }
+.review-badge b { font-size: 11px; width: 19px; height: 19px; }
+.canvas-live-update { font-size: 13px; }
+.workspace-canvas { height: 100%; width: 100%; min-width: 0; min-height: 0; }
+.canvas-list { padding: 82px 24px 24px; scroll-padding-top: 80px; }
+.canvas-list-section > h3 { font-size: 14px; color: #85679a; margin-bottom: 12px; }
+.canvas-list-section > h3 > span:last-child { font-size: 12px; color: #a18cae; }
+.canvas-list-section > div { grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 18px; }
+.mobile-tabs > button { min-height: 42px; font-size: 14px; }
+
+.card-drawer { width: min(530px, 100vw); }
+.drawer-header { padding: 14px 24px 8px; }
+.drawer-header .kind-label { font-size: 13px; }
+.drawer-heading { padding: 4px 24px 16px; }
+.drawer-heading .eyebrow { font-size: 11px; margin-bottom: 10px; }
+.drawer-title { font-size: 30px; line-height: 1.2; height: auto; min-height: 36px; max-height: 108px; overflow: auto; field-sizing: content; color: #60436f; margin-bottom: 10px; }
+.drawer-summary { font-size: 16px; line-height: 1.55; max-height: 124px; overflow: auto; field-sizing: content; color: #7a628a; }
+.drawer-meta { margin-top: 10px; }
+.drawer-meta select { font-size: 13px; padding: 7px 9px; }
+.drawer-meta > span { font-size: 12px; color: #927a9f; }
+.drawer-tabs { padding: 0 24px; gap: 24px; }
+.drawer-tabs button { font-size: 14px; padding: 12px 0; }
+.drawer-tabs button > span { font-size: 11px; }
+.drawer-scroll { padding: 20px 24px; }
+.editable-block { padding: 9px 12px 12px; }
+.block-toolbar > span { font-size: 12px; color: #9379a1; }
+.editable-block .block-textarea { font-size: 16px; line-height: 1.55; color: #725480; }
+.block-heading .block-textarea { font-size: 22px; line-height: 1.3; }
+.editable-item textarea { font-size: 15px; line-height: 1.55; color: #755987; }
+.editable-item .check-box { width: 18px; height: 18px; }
+.add-item, .add-block { font-size: 14px; min-height: 40px; }
+.block-picker button { font-size: 14px; min-height: 40px; }
+.drawer-section { padding-top: 18px; margin-top: 18px; }
+.drawer-section h3 { font-size: 15px; color: #805e94; }
+.drawer-section > .subtle { font-size: 13px; color: #947ba4; margin-bottom: 12px; }
+.dependency-options label { font-size: 14px; line-height: 1.5; color: #795988; padding: 5px 0; }
+.dependency-options input { width: 17px; height: 17px; flex-shrink: 0; }
+.context-fields h3 { font-size: 23px; }
+.context-fields .field-label input { font-size: 16px; color: #725581; }
+.card-drawer .media-editor-fields .field-label input,
+.card-drawer .media-editor-fields .field-label textarea,
+.card-drawer .media-editor-fields .field-label select { font-size: 16px; }
+.drawer-footer { padding: 14px 24px; gap: 8px; }
+.drawer-footer .primary-button, .drawer-footer .secondary-button { font-size: 14px; min-height: 42px; padding: 10px 12px; }
+.source-reference > span, .source-reference-title { font-size: 15px; }
+.source-reference > p { font-size: 14px; line-height: 1.6; color: #876794; }
+.source-reference > small, .revision-list small { font-size: 12px; }
+.revision-list h4 { font-size: 16px; }
+.revision-list p { font-size: 14px; line-height: 1.55; }
+.danger-text { font-size: 13px; min-height: 38px; }
+
+.card-mini-chat { width: 390px; height: 500px; }
+.card-mini-chat > header { padding: 13px 15px; }
+.card-mini-chat > header span { font-size: 12px; color: #9a7aab; }
+.card-mini-chat h2 { font-size: 20px; color: #785589; }
+.mini-chat-history { padding: 18px; }
+.mini-chat-welcome { font-size: 15px; line-height: 1.6; padding: 18px 4px; color: #9473a3; }
+.mini-chat-welcome h3 { font-size: 24px; }
+.mini-chat-welcome > button { font-size: 14px; min-height: 40px; }
+.mini-chat-message, .mini-user { font-size: 15px; line-height: 1.65; color: #795986; }
+.mini-chat-composer textarea { font-size: 16px; line-height: 1.55; color: #795986; }
+.mini-chat-composer .send-button { width: 36px; height: 36px; }
+
+.modal { padding: 30px; }
+.modal .eyebrow { font-size: 11px; }
+.modal > p, .about-modal > p { font-size: 16px; line-height: 1.6; }
+.about-modal > .subtle { font-size: 14px; }
+.field-label { font-size: 13px; gap: 7px; margin-bottom: 16px; color: #805991; }
+.field-label > span { font-size: 12px; }
+.field-label input, .field-label textarea, .field-label select { font-size: 16px; line-height: 1.5; padding: 10px 12px; color: #725282; }
+.modal-actions button, .about-modal .primary-button { font-size: 14px; }
+.dialog-footnote, .form-error { font-size: 13px; line-height: 1.55; }
+.before-after h4 { font-size: 17px; }
+.before-after p { font-size: 14px; }
+.before-after > div > span { font-size: 11px; }
+.empty-small, .global-toast { font-size: 14px; line-height: 1.5; }
+
+/* Keep the first idea as easy to read as the plan. */
+.landing-header nav button { font-size: 14px; }
+.hero-copy { font-size: 16px; line-height: 1.6; }
+.hero-kicker { font-size: 12px; letter-spacing: 1.5px; }
+.idea-input-top { font-size: 13px; }
+.idea-form textarea { font-size: 22px; }
+.idea-input-bottom > span { font-size: 12px; }
+.idea-chips { font-size: 12px; flex-wrap: wrap; }
+.hero-bottom, .hero-bottom button { font-size: 12px; }
+.journey-grid h3 { font-size: 20px; }
+.journey-grid p { font-size: 15px; line-height: 1.6; }
+.landing-footer { font-size: 12px; }
+.project-tile > p { font-size: 14px; line-height: 1.5; height: 42px; }
+.project-tile-bottom { font-size: 11px; }
+
+@media (max-width: 1050px) {
+  .chat-panel { min-width: 310px; width: 35%; }
+  .chat-messages { padding: 20px 18px 16px; }
+  .chat-composer { padding-left: 14px; padding-right: 14px; }
+  .canvas-actions > button:not(.review-badge) > span { display: none; }
+  .canvas-actions .research-trigger span { display: none; }
+  .canvas-toolbar .canvas-actions { gap: 3px; }
+  .canvas-list-section > div { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .workspace { min-height: 0; }
+  .workspace-header { height: 60px; padding: 0 12px; gap: 7px; }
+  .workspace-breadcrumb { gap: 6px; }
+  .workspace-wordmark { font-size: 30px; }
+  .sidebar-toggle { width: 36px; height: 40px; }
+  .project-menu-trigger { font-size: 13px; max-width: min(35vw, 240px); gap: 4px; }
+  .project-menu-trigger > svg { width: 14px; height: 14px; }
+  .workspace-header-actions { gap: 1px; }
+  .demo-badge { font-size: 9px; padding: 4px; }
+  .project-dropdown { left: -120px; max-width: calc(100vw - 24px); }
+  .mobile-tabs { padding: 5px 12px; }
+  .mobile-tabs > button { font-size: 14px; min-height: 40px; }
+  .chat-panel { width: 100%; max-width: none; min-width: 0; }
+  .chat-messages { padding: 20px 18px; }
+  .chat-message { font-size: 16px; }
+  .message-user .message-content { font-size: 15px; }
+  .chat-composer textarea { font-size: 16px; }
+  .canvas-toolbar { top: 12px; left: 12px; right: 12px; flex-wrap: wrap; justify-content: flex-start; gap: 8px; }
+  .canvas-toolbar .view-toggle { display: flex; }
+  .canvas-toolbar .view-toggle button { min-height: 36px; }
+  .canvas-toolbar .canvas-actions { width: auto; max-width: 100%; padding: 3px 5px; gap: 3px; justify-content: flex-start; flex-wrap: wrap; }
+  .canvas-toolbar .toolbar-evidence { padding: 7px !important; }
+  .canvas-list { padding: 118px 16px 24px; scroll-padding-top: 116px; }
+  .drawer-header, .drawer-heading, .drawer-scroll, .drawer-footer { padding-left: 20px; padding-right: 20px; }
+  .card-drawer { width: 100%; }
+  .card-mini-chat { left: 12px; right: 12px; width: auto; max-height: calc(100dvh - 90px); }
+  .modal { padding: 30px 22px 22px; }
+  .hero h1 { font-size: clamp(36px, 8vw, 54px); }
+  .hero-main { margin-top: 64px; }
+  .hero-copy { font-size: 16px; }
+  .idea-form textarea { font-size: 21px; }
+}
+@media (max-width: 420px) {
+  .demo-badge { display: none; }
+  .project-menu-trigger { max-width: 36vw; }
+  .landing-header nav { gap: 16px; }
+  .landing-header nav button { font-size: 13px; }
+}

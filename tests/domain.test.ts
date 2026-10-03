@@ -14,6 +14,23 @@ function projectWithAction(idea: string) {
 }
 
 describe('create project domain', () => {
+  it('enriches an already published source without replacing its address',()=>{
+    const project=createProject('Uma loja local');
+    const source={id:'real-page',title:'Página consultada',url:'https://example.com/',excerpt:'Trecho da busca',consultedAt:new Date().toISOString(),verified:true};
+    project.sources=[source];
+    const enriched=applyTurn(project,result({sources:[{...source,excerpt:'Texto adicional obtido da página',imageUrl:'https://example.com/image.jpg'}]}));
+    expect(enriched.sources).toHaveLength(1);expect(enriched.sources[0].excerpt).toBe('Texto adicional obtido da página');expect(enriched.sources[0].imageUrl).toBe('https://example.com/image.jpg');
+    const mismatched=applyTurn(enriched,result({sources:[{...source,url:'https://other.example.com/'}]}));
+    expect(mismatched.sources[0].url).toBe(source.url);
+  });
+  it('leaves space around a reference card when organizing new cards',()=>{
+    const project=createProject('Uma loja local');const reference=makeCard('note','Referências visuais','Links e imagens para estudar.',[{id:'photo',type:'image',url:'https://example.com/photo.jpg'}],'next');
+    reference.position={x:430,y:48};reference.pinnedPosition=true;
+    const following=makeCard('note','Próxima anotação','Conteúdo para a investigação.',[],'next');
+    const arranged=organizeCards([reference,following]);
+    expect(arranged[0].position).toEqual(reference.position);
+    expect(arranged[1].position.y).toBeGreaterThan(reference.position.y+400);
+  });
   it('starts with the user idea and adds model-created cards progressively', () => {
     const project = createProject('Quero criar um programa de mentoria para designers');
     expect(project.cards).toHaveLength(1);

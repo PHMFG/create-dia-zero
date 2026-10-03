@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { TurnResult, Project } from './types';
+import { isSafeExternalUrl } from './media';
 
 const id = z.string().trim().min(1).max(120);
 const shortText = z.string().max(400);
@@ -15,9 +16,12 @@ export const contextSchema = z.object({
   budget: shortText.optional(), availability: shortText.optional(), constraints: z.string().max(2000).optional(), goal: shortText.optional(),
 });
 export const checklistItemSchema = z.object({ id, text: z.string().max(2000), checked: z.boolean(), humanEdited: z.boolean().optional() });
+export const publicMediaUrlSchema = httpUrlSchema.refine(isSafeExternalUrl, 'Use um endereço público para este conteúdo.');
 export const blockSchema = z.object({
-  id, type: z.enum(['heading', 'paragraph', 'list', 'checklist', 'callout', 'sources']),
+  id, type: z.enum(['heading', 'paragraph', 'list', 'checklist', 'callout', 'sources', 'link', 'image', 'location']),
   text: text.optional(), items: z.array(checklistItemSchema).max(80).optional(), sourceIds: z.array(id).max(20).optional(), humanEdited: z.boolean().optional(),
+  url: publicMediaUrlSchema.optional(), alt: z.string().max(1000).optional(), caption: z.string().max(2000).optional(),
+  address: z.string().max(1000).optional(), latitude: z.number().finite().min(-90).max(90).optional(), longitude: z.number().finite().min(-180).max(180).optional(),
 });
 export const canvasCardSchema = z.object({
   id, kind: z.enum(['context', 'hypothesis', 'research', 'action', 'evidence', 'decision', 'note']),
@@ -29,7 +33,7 @@ export const canvasCardSchema = z.object({
   status: z.enum(['draft', 'ready', 'doing', 'awaiting_evidence', 'done', 'review']).optional(), dependsOn: z.array(id).max(50),
 });
 export const sourceSchema = z.object({
-  id, title: z.string().max(300), url: httpUrlSchema, consultedAt: z.string().datetime(), excerpt: z.string().max(6000), verified: z.boolean(),
+  id, title: z.string().max(300), url: httpUrlSchema, consultedAt: z.string().datetime(), excerpt: z.string().max(6000), verified: z.boolean(), imageUrl: publicMediaUrlSchema.optional(),
 });
 export const evidenceInputSchema = z.object({
   text: z.string().trim().min(3).max(16000), cardId: id.optional(),

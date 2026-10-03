@@ -2,40 +2,56 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import RichText from './RichText';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Check, ChevronDown, ChevronRight, CircleHelp, Cloud, Download, Ellipsis, ExternalLink, FileText, FolderOpen, LayoutGrid, Link2, List, LoaderCircle, MessageSquare, Plus, RefreshCw, Search, Send, Sparkles, Square, Upload, X, PanelLeft } from 'lucide-react';
-import type { CanvasCard, Health, Project, Proposal, StreamEvent } from '../../shared/types';
+import type { AgentActivity as Activity, CanvasCard, Health, Project, Proposal, StreamEvent } from '../../shared/types';
 import { exportProject, organizeCards } from '../../shared/domain';
+import { validateConnection } from '../../shared/canvasConnections';
 import { api, ApiError } from '../lib/api';
 import { hasLocalContent, mergeIncoming } from '../lib/projectMerge';
 import Canvas from './Canvas';
 import CardChat from './CardChat';
+import AgentActivity from './AgentActivity';
+import PromptQueue, { type QueuedPrompt } from './PromptQueue';
 import { CardDrawer, EvidenceDialog, Modal, ProposalDialog } from './Dialogs';
+import './WorkspaceLive.css';
 
 interface Props { initial:Project; autoStart?:boolean; projects:Project[]; health:Health|null; onHome:()=>void; onOpen:(id:string)=>void; onHelp:()=>void; onImport:(file:File)=>void }
 export default function Workspace({initial,autoStart,projects,health,onHome,onOpen,onHelp,onImport}:Props) {
   const [project,setProject]=useState(initial); const projectRef=useRef(initial), syncedRef=useRef(initial);
   const [selected,setSelected]=useState<string|null>(null); const [sidebarOpen,setSidebarOpen]=useState(false); const [focusedCard,setFocusedCard]=useState<string|null>(null); const [activeCard,setActiveCard]=useState<string|null>(null); const [evidenceFor,setEvidenceFor]=useState<string|null|false>(false); const [proposal,setProposal]=useState<Proposal|null>(null);
-  const [saveStatus,setSaveStatus]=useState<'saved'|'saving'|'error'>('saved'); const [error,setError]=useState('');
+  const [saveStatus,setSaveStatus]=useState<'saved'|'saving'|'error'>('saved'); const [error,setError]=useState('');const saveError=useRef('');
+  const [runActivities,setRunActivities]=useState<Activity[]>([]);const [activityCard,setActivityCard]=useState<string|null>(null);
   const [chatText,setChatText]=useState('');const [streamText,setStreamText]=useState('');const [activity,setActivity]=useState('');const [generating,setGenerating]=useState(false);
-  const [view,setView]=useState<'canvas'|'list'>('canvas'); const [mobileTab,setMobileTab]=useState<'chat'|'plan'>(autoStart?'chat':'plan'); const [menu,setMenu]=useState(false); const [projectMenu,setProjectMenu]=useState(false); const [sourcesOpen,setSourcesOpen]=useState(false); const [confirmDelete,setConfirmDelete]=useState(false);
+  const [queuedPrompts,setQueuedPrompts]=useState<QueuedPrompt[]>(()=>{try{const saved=JSON.parse(sessionStorage.getItem(`create-queue-${initial.id}`)||'[]');return Array.isArray(saved)?saved.filter((item)=>item&&typeof item.id==='string'&&typeof item.text==='string'&&item.text.trim()&&item.text.length<=12000&&(item.cardId===undefined||typeof item.cardId==='string')).slice(0,10):[];}catch{return [];}});
+  const queueRef=useRef(queuedPrompts);const [queuePaused,setQueuePaused]=useState(queuedPrompts.length>0);const pausedRef=useRef(queuePaused);const drainQueueRef=useRef<()=>void>(()=>{});const mounted=useRef(true);
+  const [changedCardIds,setChangedCardIds]=useState<string[]>([]);const [canvasNotice,setCanvasNotice]=useState('');const noticeTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  const [view,setView]=useState<'canvas'|'list'>(()=>typeof window!=='undefined'&&window.matchMedia('(max-width: 760px)').matches?'list':'canvas'); const [mobileTab,setMobileTab]=useState<'chat'|'plan'>(autoStart?'chat':'plan'); const [menu,setMenu]=useState(false); const [projectMenu,setProjectMenu]=useState(false); const [sourcesOpen,setSourcesOpen]=useState(false); const [confirmDelete,setConfirmDelete]=useState(false);
   const dirty=useRef(false), editSequence=useRef(0), timer=useRef<ReturnType<typeof setTimeout>|null>(null), saving=useRef<Promise<void>|null>(null), abort=useRef<AbortController|null>(null), chatRunning=useRef(false);
   const chatScroll=useRef<HTMLDivElement>(null), autoScroll=useRef(true), importInput=useRef<HTMLInputElement>(null), composer=useRef<HTMLTextAreaElement>(null);
   const working=useCallback((next:Project)=>{projectRef.current=next;setProject(next);},[]);
+  const replaceQueue=useCallback((items:QueuedPrompt[])=>{queueRef.current=items;if(mounted.current)setQueuedPrompts(items);try{if(items.length)sessionStorage.setItem(`create-queue-${initial.id}`,JSON.stringify(items));else sessionStorage.removeItem(`create-queue-${initial.id}`);}catch{}},[initial.id]);
+  const pauseQueue=useCallback(()=>{pausedRef.current=true;setQueuePaused(true);},[]);
+  const resumeQueue=useCallback(()=>{pausedRef.current=false;setQueuePaused(false);queueMicrotask(()=>drainQueueRef.current());},[]);
+  const cancelGeneration=useCallback(()=>{pauseQueue();abort.current?.abort();},[pauseQueue]);
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
+  const notice=useCallback((label:string,ids:string[]=[])=>{setCanvasNotice(label);if(ids.length)setChangedCardIds(old=>[...new Set([...old,...ids])]);if(noticeTimer.current)clearTimeout(noticeTimer.current);noticeTimer.current=setTimeout(()=>{setCanvasNotice('');},4500);},[]);
+  useEffect(()=>()=>{if(noticeTimer.current)clearTimeout(noticeTimer.current);},[]);
   const persist=useCallback(async()=>{
     if(saving.current) {await saving.current;return;}
     if(!dirty.current)return;
-    if(projectRef.current.cards.some((card)=>!card.title.trim())){setSaveStatus('error');setError('Dê um título aos cartões antes de salvar. Seu rascunho está preservado.');throw new Error('Um cartão está sem título.');}
+    if(projectRef.current.cards.some((card)=>!card.title.trim())){const message='Dê um título aos cartões antes de salvar. Seu rascunho está preservado.';saveError.current=message;setSaveStatus('error');setError(message);throw new Error(message);}
     const snapshot=projectRef.current, base=syncedRef.current, sequence=editSequence.current;dirty.current=false;setSaveStatus('saving');
     const task=api.save(snapshot).catch(async(e:Error&{status?:number})=>{
       if(!(e instanceof ApiError&&e.status===409))throw e;
       const latest=await api.get(snapshot.id);
       return api.save(mergeIncoming(base,snapshot,latest));
     }).then((saved)=>{
+      const previousError=saveError.current;saveError.current='';if(previousError)setError(current=>current===previousError?'':current);
       if(saved.version<projectRef.current.version){setSaveStatus(dirty.current?'saving':'saved');return;}
       syncedRef.current=saved;
       if(sequence===editSequence.current)working(saved);
       else working({...projectRef.current,version:saved.version,updatedAt:saved.updatedAt});
       setSaveStatus(dirty.current?'saving':'saved');
-    }).catch((e)=>{dirty.current=true;setSaveStatus('error');setError(e instanceof Error?e.message:'Seu rascunho está preservado aqui. Tente salvar novamente.');throw e;}).finally(()=>{saving.current=null;});
+    }).catch((e)=>{dirty.current=true;setSaveStatus('error');const message=e instanceof Error?e.message:'Seu rascunho está preservado aqui. Tente salvar novamente.';saveError.current=message;setError(message);throw e;}).finally(()=>{saving.current=null;});
     saving.current=task; await task;
   },[working]);
   const flush=useCallback(async()=>{if(timer.current)clearTimeout(timer.current);if(saving.current)await saving.current;if(dirty.current)await persist();},[persist]);
@@ -47,37 +63,59 @@ export default function Workspace({initial,autoStart,projects,health,onHome,onOp
   },[working,persist]);
   useEffect(()=>{const raw=sessionStorage.getItem(`create-draft-${initial.id}`);if(raw){try{const saved=JSON.parse(raw);const draft=saved.format==='create-draft'?mergeIncoming(saved.base,saved.project,initial):saved as Project;if(hasLocalContent(draft,initial)){working(draft);dirty.current=true;setSaveStatus('saving');void persist().catch(()=>{});}}catch{}}return()=>{if(timer.current)clearTimeout(timer.current);abort.current?.abort();};},[initial.id]);
   useEffect(()=>{if(saveStatus==='saved')sessionStorage.removeItem(`create-draft-${project.id}`);},[saveStatus,project.id]);
-  useEffect(()=>{if(autoScroll.current)chatScroll.current?.scrollTo({top:chatScroll.current.scrollHeight,behavior:generating?'auto':'smooth'});},[project.messages,streamText,activity]);
+  useEffect(()=>{if(autoScroll.current)chatScroll.current?.scrollTo({top:chatScroll.current.scrollHeight,behavior:generating?'auto':'smooth'});},[project.messages,streamText,activity,runActivities]);
   useEffect(()=>{const before=(e:BeforeUnloadEvent)=>{if(dirty.current||saving.current){e.preventDefault();}};window.addEventListener('beforeunload',before);return()=>window.removeEventListener('beforeunload',before);},[]);
   const title=useCallback((id:string,value:string)=>edit((p)=>({...p,updatedAt:new Date().toISOString(),cards:p.cards.map((c)=>c.id===id?{...c,title:value,humanEdited:true,revision:c.revision+1}:c)})),[edit]);
   const check=useCallback((id:string,blockId:string,itemId:string)=>edit((p)=>({...p,updatedAt:new Date().toISOString(),cards:p.cards.map((c)=>c.id===id?{...c,humanEdited:true,revision:c.revision+1,blocks:c.blocks.map((b)=>b.id===blockId?{...b,humanEdited:true,items:b.items?.map((i)=>i.id===itemId?{...i,checked:!i.checked,humanEdited:true}:i)}:b)}:c)})),[edit]);
   const move=useCallback((id:string,position:{x:number;y:number})=>edit((p)=>({...p,updatedAt:new Date().toISOString(),cards:p.cards.map((c)=>c.id===id?{...c,position,pinnedPosition:true}:c)})),[edit]);
-  const openCard=useCallback((id:string)=>setSelected(id),[]);
-  async function sendChat(text=chatText,evidenceRegistered=false,cardId?:string) {
-    if(!text.trim()||chatRunning.current)return;
-    chatRunning.current=true;setActiveCard(cardId||null);setGenerating(true);setStreamText('');setActivity('Organizando o contexto do seu projeto');setError('');setChatText('');autoScroll.current=true;
+  const connect=useCallback((source:string,target:string)=>{const result=validateConnection(projectRef.current.cards,source,target);if(!result.valid){notice(result.error??'Não foi possível conectar estes cartões.');return;}edit(p=>({...p,updatedAt:new Date().toISOString(),cards:p.cards.map(c=>c.id===target?{...c,dependsOn:[...c.dependsOn,source],humanEdited:true,revision:c.revision+1}:c)}));notice('Cartões conectados');},[edit,notice]);
+  const disconnect=useCallback((source:string,target:string)=>{edit(p=>({...p,updatedAt:new Date().toISOString(),cards:p.cards.map(c=>c.id===target?{...c,dependsOn:c.dependsOn.filter(id=>id!==source),humanEdited:true,revision:c.revision+1}:c)}));notice('Conexão removida');},[edit,notice]);
+  const changeCard=useCallback((card:CanvasCard)=>{const before=projectRef.current.cards.find(c=>c.id===card.id);for(const source of card.dependsOn.filter(id=>!before?.dependsOn.includes(id))){const result=validateConnection(projectRef.current.cards,source,card.id);if(!result.valid){notice(result.error??'Esta conexão não pode ser criada.');return;}}edit(p=>({...p,updatedAt:new Date().toISOString(),cards:p.cards.map(c=>c.id===card.id?card:c)}));},[edit,notice]);
+  const openCard=useCallback((id:string)=>{setSelected(id);setChangedCardIds(old=>old.filter(changed=>changed!==id));},[]);
+  async function sendChat(text=chatText,evidenceRegistered=false,cardId?:string,onAccepted?:()=>void,queuedItem?:QueuedPrompt) {
+    if(!text.trim())return;
+    const fromComposer=!queuedItem&&!cardId&&text===chatText;
+    if(!queuedItem&&(chatRunning.current||queueRef.current.length)){
+      if(queueRef.current.length>=10){setError('A fila já tem 10 perguntas. Remova uma pergunta pendente antes de acrescentar outra.');return;}
+      replaceQueue([...queueRef.current,{id:crypto.randomUUID(),text:text.trim(),cardId,evidenceRegistered}]);
+      if(fromComposer)setChatText(value=>value===text?'':value);onAccepted?.();
+      if(!chatRunning.current&&!pausedRef.current)queueMicrotask(()=>drainQueueRef.current());return;
+    }
+    if(chatRunning.current)return;
+    if(!queuedItem){pausedRef.current=false;setQueuePaused(false);}
+    let succeeded=false;let acknowledged=false;
+    chatRunning.current=true;setActiveCard(cardId||null);setActivityCard(cardId||null);setRunActivities([]);setChangedCardIds([]);setGenerating(true);setStreamText('');setActivity('Organizando o contexto do seu projeto');setError('');autoScroll.current=true;
     try {
-      await flush(); const current=projectRef.current;
+      if(cardId&&!projectRef.current.cards.some(card=>card.id===cardId))throw new Error('O cartão desta pergunta foi removido. Retire a pergunta da fila e envie-a novamente em outro cartão ou na conversa.');
+      await flush(); const current=projectRef.current;let receivedBase=current;
       working({...current,messages:[...current.messages,{id:`pending-${crypto.randomUUID()}`,role:'user',text:text.trim(),createdAt:new Date().toISOString(),cardId}]});
       const controller=new AbortController();abort.current=controller;
       await api.chat(current.id,text.trim(),(event:StreamEvent)=>{
+        if(!acknowledged){acknowledged=true;if(fromComposer)setChatText(value=>value===text?'':value);onAccepted?.();}
         if(event.type==='status')setActivity(event.text);
+        else if(event.type==='activity'){setRunActivities(old=>{const index=old.findIndex(item=>item.id===event.id);if(index<0)return [...old,event];return old.map((item,i)=>i===index?event:item);});if(event.state==='running')setActivity(event.label);}
         else if(event.type==='text'){setStreamText((old)=>old+event.text);setActivity('Escrevendo seu próximo passo');}
         else if(event.type==='error')throw new Error(event.error);
-        else if(event.type==='complete') {
-          const merged=mergeIncoming(current,projectRef.current,event.project);
+        else if(event.type==='project'||event.type==='complete') {
+          if(event.project.version<syncedRef.current.version)return;
+          const merged=mergeIncoming(receivedBase,projectRef.current,event.project);
+          receivedBase=event.project;
           syncedRef.current=event.project;
           if(hasLocalContent(merged,event.project))dirty.current=true;
-          working(merged);setStreamText('');setSaveStatus(dirty.current?'saving':'saved');
+          working(merged);if(event.type==='complete')setStreamText('');else notice(event.label,event.changedCardIds);setSaveStatus(dirty.current?'saving':'saved');
         }
       },controller.signal,{evidence:evidenceRegistered,cardId});
       if(dirty.current)await flush();
+      succeeded=true;
     } catch(e) {
+      pauseQueue();
+      if(queuedItem&&!acknowledged)replaceQueue([queuedItem,...queueRef.current.filter(item=>item.id!==queuedItem.id)]);
       if(e instanceof Error&&e.name==='AbortError')setError('Geração interrompida. Você pode continuar a conversa quando quiser.');
       else setError(e instanceof Error?e.message:'A conexão foi interrompida. Seu projeto continua salvo.');
       try { const latest=await api.get(projectRef.current.id);if(!dirty.current)working(latest); }catch{}
-    } finally {chatRunning.current=false;abort.current=null;setGenerating(false);setActiveCard(null);setActivity('');setStreamText('');}
+    } finally {setRunActivities(old=>old.map(item=>item.state==='running'?{...item,state:'failed',label:`Interrompido: ${item.label}`}:item));chatRunning.current=false;abort.current=null;setGenerating(false);setActiveCard(null);setActivity('');setStreamText('');if(succeeded&&mounted.current&&!pausedRef.current)queueMicrotask(()=>drainQueueRef.current());}
   }
+  drainQueueRef.current=()=>{if(!mounted.current||chatRunning.current||pausedRef.current)return;const [next,...rest]=queueRef.current;if(!next)return;replaceQueue(rest);void sendChat(next.text,Boolean(next.evidenceRegistered),next.cardId,undefined,next);};
   useEffect(()=>{if(!autoStart||initial.demo)return;const start=setTimeout(()=>{void sendChat(initial.context.idea);},150);return()=>clearTimeout(start);},[initial.id]);
   async function leave(){try{await flush();onHome();}catch{}}
   async function evidence(input:Parameters<typeof api.evidence>[1]) {await flush();const saved=await api.evidence(project.id,input);syncedRef.current=saved;working(saved);setMobileTab('chat');void sendChat('Analise a experiência que acabei de registrar. Relacione-a às hipóteses e à ação atual; proponha uma revisão do plano se as evidências justificarem, sem aplicar decisões estratégicas automaticamente.',true);}
@@ -98,18 +136,19 @@ export default function Workspace({initial,autoStart,projects,health,onHome,onOp
           {!mainMessages.length&&!generating&&<div className="chat-welcome"><span className="assistant-avatar">✳</span><p>Sua ideia já tem um espaço aqui. Conte um pouco sobre quem você quer ajudar, e vamos encontrar o primeiro passo.</p><button onClick={()=>sendChat('Vamos começar. Qual é a primeira pergunta para entender minha ideia?')}>Começar a conversa<ArrowRight size={15}/></button></div>}
           {mainMessages.map((message)=><div className={`chat-message message-${message.role}`} key={message.id}>{message.role==='assistant'&&<span className="assistant-avatar">✳</span>}<div className="message-content"><RichText>{message.text}</RichText>{message.sourceIds?.length? <div className="message-sources">{message.sourceIds.map((id)=>{const s=project.sources.find((source)=>source.id===id);return s?<a href={s.url} target="_blank" rel="noopener noreferrer" key={id}><Link2 size={11}/>{s.title}</a>:null;})}</div>:null}{message.incomplete&&<small className="subtle">Resposta interrompida</small>}</div></div>)}
           {generating&&!activeCard&&<div className="chat-message message-assistant"><span className="assistant-avatar">✳</span><div className="message-content">{streamText?<RichText>{streamText}</RichText>:<div className="thinking-dots"><span/><span/><span/></div>}<div className="activity-status"><LoaderCircle size={12} className="spin"/>{activity}</div></div></div>}
+          {(!activityCard||focusedCard!==activityCard)&&<AgentActivity activities={runActivities} cards={project.cards} generating={generating} onOpen={openCard}/>}
           {!generating&&pending.length>0&&<button className="chat-proposal" onClick={()=>setProposal(pending[0])}><span className="create-symbol small-symbol">✳</span><div><strong>Seu plano pode evoluir</strong><span>{pending[0].title}</span></div><ArrowUpRight size={18}/></button>}
         </div>{error&&<div className="workspace-error" role="alert"><span>{error}</span><button aria-label="Fechar mensagem" onClick={()=>setError('')}><X size={14}/></button></div>}
-        <div className="chat-composer"><form onSubmit={(e)=>{e.preventDefault();void sendChat();}}><textarea ref={composer} value={chatText} onChange={(e)=>setChatText(e.target.value)} placeholder="Conte uma ideia, faça uma pergunta…" aria-label="Mensagem para a create" maxLength={12000} rows={2} onKeyDown={(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();if(!generating)void sendChat();}}}/><div className="composer-bottom"><span><Sparkles size={12}/>Um passo de cada vez.</span>{generating?<button type="button" className="send-button cancel" aria-label="Interromper geração" onClick={()=>abort.current?.abort()}><Square size={13} fill="currentColor"/></button>:<button className="send-button" type="submit" disabled={!chatText.trim()} aria-label="Enviar mensagem"><ArrowUpRight size={21}/></button>}</div></form><p>O plano é seu. A create ajuda a pensar e organizar.</p></div></section>
-        <section className="plan-panel"><div className="canvas-toolbar"><div className="view-toggle"><button className={view==='canvas'?'active':''} onClick={()=>setView('canvas')} aria-label="Ver canvas"><LayoutGrid size={14}/><span>Canvas</span></button><button className={view==='list'?'active':''} onClick={()=>setView('list')} aria-label="Ver lista"><List size={15}/><span>Lista</span></button></div><div className="canvas-actions">{pending.length>0&&<button className="review-badge" onClick={()=>setProposal(pending[0])} title="Revisar mudanças sugeridas"><Sparkles size={13}/><span>Revisão</span><b>{pending.length}</b></button>}<button onClick={()=>{edit((p)=>({...p,updatedAt:new Date().toISOString(),cards:organizeCards(p.cards)}));}} title="Reorganiza os cartões por prioridade"><RefreshCw size={14}/><span>Organizar</span></button><button onClick={addNote} title="Adicionar anotação" aria-label="Adicionar anotação"><Plus size={16}/></button><button onClick={()=>setSourcesOpen(true)} title="Ver fontes" aria-label="Ver fontes"><Link2 size={15}/></button><button className="toolbar-evidence" disabled={generating} onClick={()=>setEvidenceFor(currentAction?.id||null)} title="Registrar o que aconteceu"><ArrowUpRight size={15}/><span>Experiência</span></button></div></div>
-          <div className={`canvas-container ${view==='list'?'list-view':''}`}><div className="desktop-canvas"><Canvas project={project} list={view==='list'} onOpen={openCard} onClarify={setFocusedCard} onTitle={title} onCheck={check} onMove={move}/></div><div className="mobile-canvas"><Canvas project={project} list onOpen={openCard} onClarify={setFocusedCard} onTitle={title} onCheck={check} onMove={move}/></div>{!project.cards.length&&<div className="empty-canvas"><span>✳</span><h3>Sua ideia está ganhando forma.</h3><p>Converse com a create para encontrar seu primeiro passo.</p></div>}</div>
+        <div className="chat-composer"><PromptQueue items={queuedPrompts} cards={project.cards} paused={queuePaused} onRemove={(id)=>replaceQueue(queueRef.current.filter(item=>item.id!==id))} onResume={resumeQueue}/><form onSubmit={(e)=>{e.preventDefault();void sendChat();}}><textarea ref={composer} value={chatText} onChange={(e)=>setChatText(e.target.value)} placeholder={generating?"Sua próxima pergunta entra na fila…":"Conte uma ideia, faça uma pergunta…"} aria-label="Mensagem para a create" maxLength={12000} rows={2} onKeyDown={(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();void sendChat();}}}/><div className="composer-bottom"><span><Sparkles size={12}/>Um passo de cada vez.</span><div className="composer-send-actions">{generating&&<button type="button" className="send-button cancel" aria-label="Interromper geração e pausar a fila" onClick={cancelGeneration}><Square size={13} fill="currentColor"/></button>}<button className="send-button" type="submit" disabled={!chatText.trim()||queuedPrompts.length>=10} aria-label={generating||queuedPrompts.length?"Adicionar mensagem à fila":"Enviar mensagem"} title={generating?"Enviar após a resposta atual":"Enviar mensagem"}><ArrowUpRight size={21}/></button></div></div></form><p>O plano é seu. A create ajuda a pensar e organizar.</p></div></section>
+        <section className="plan-panel"><div className="canvas-toolbar"><div className="view-toggle"><button className={view==='canvas'?'active':''} onClick={()=>setView('canvas')} aria-label="Ver canvas"><LayoutGrid size={14}/><span>Canvas</span></button><button className={view==='list'?'active':''} onClick={()=>setView('list')} aria-label="Ver lista"><List size={15}/><span>Lista</span></button></div><div className="canvas-actions"><button className="research-trigger" disabled={generating||!health?.research} onClick={()=>void sendChat("Pesquise na internet informações relevantes para o próximo passo deste projeto. Considere a cidade e os recursos disponíveis. Registre referências com links nas anotações e acrescente imagens e locais apenas se forem obtidos de fontes reais.")} title={health?.research?"Pesquisar na internet e acrescentar referências ao canvas":"Pesquisa na internet ainda indisponível"} aria-label="Pesquisar na internet"><Search size={14}/><span>Pesquisar</span></button>{pending.length>0&&<button className="review-badge" onClick={()=>setProposal(pending[0])} title="Revisar mudanças sugeridas"><Sparkles size={13}/><span>Revisão</span><b>{pending.length}</b></button>}<button onClick={()=>{edit((p)=>({...p,updatedAt:new Date().toISOString(),cards:organizeCards(p.cards)}));}} aria-label="Organizar cartões" title="Reorganiza os cartões por prioridade"><RefreshCw size={14}/><span>Organizar</span></button><button onClick={addNote} title="Adicionar anotação" aria-label="Adicionar anotação"><Plus size={16}/></button><button onClick={()=>setSourcesOpen(true)} title="Ver fontes" aria-label="Ver fontes"><Link2 size={15}/></button><button className="toolbar-evidence" disabled={generating} onClick={()=>setEvidenceFor(currentAction?.id||null)} aria-label="Registrar experiência" title="Registrar o que aconteceu"><ArrowUpRight size={15}/><span>Experiência</span></button></div></div>
+          <div className={`canvas-container ${view==='list'?'list-view':''}`}><div className="workspace-canvas"><Canvas project={project} list={view==='list'} onOpen={openCard} onClarify={setFocusedCard} onTitle={title} onCheck={check} onMove={move} onConnect={connect} onDisconnect={disconnect} onNotice={notice} changedCardIds={changedCardIds}/></div>{canvasNotice&&<div className="canvas-live-update" role="status"><Sparkles size={13}/><strong>{canvasNotice}</strong></div>}{!project.cards.length&&<div className="empty-canvas"><span>✳</span><h3>Sua ideia está ganhando forma.</h3><p>Converse com a create para encontrar seu primeiro passo.</p></div>}</div>
           <footer className="canvas-footer"><div><span className="footer-status-dot"/>{project.cards.length} cartões <span className="footer-divider"/> {checked}/{checks.length} passos</div><div><span>{project.evidence.length} {project.evidence.length===1?'experiência':'experiências'}</span><button onClick={()=>setSourcesOpen(true)}><Link2 size={13}/>{project.sources.length} {project.sources.length===1?'fonte':'fontes'}</button></div></footer>
         </section>
 
       </div>
     </div>
-    <AnimatePresence>{selectedCard&&<CardDrawer key={selectedCard.id} project={project} card={selectedCard} onClose={()=>setSelected(null)} onChange={(card)=>edit((p)=>({...p,updatedAt:new Date().toISOString(),cards:p.cards.map((c)=>c.id===card.id?card:c)}))} onContext={(patch)=>edit((p)=>({...p,updatedAt:new Date().toISOString(),context:{...p.context,...patch},cards:p.cards.map((c)=>c.id===selectedCard.id?{...c,humanEdited:true,revision:c.revision+1}:c)}))} onClarify={()=>{setFocusedCard(selectedCard.id);setSelected(null);}} onEvidence={()=>{setEvidenceFor(selectedCard.id);setSelected(null);}} onDelete={()=>{edit((p)=>({...p,updatedAt:new Date().toISOString(),cards:p.cards.filter((c)=>c.id!==selectedCard.id).map((c)=>({...c,dependsOn:c.dependsOn.filter((id)=>id!==selectedCard.id)}))}));setSelected(null);}}/>}</AnimatePresence>
-    <AnimatePresence>{focusedCard&&project.cards.find((c)=>c.id===focusedCard)&&<CardChat key={focusedCard} card={project.cards.find((c)=>c.id===focusedCard)!} messages={project.messages.filter((m)=>m.cardId===focusedCard)} generating={generating&&activeCard===focusedCard} stream={activeCard===focusedCard?streamText:''} activity={activity} blocked={generating} onClose={()=>setFocusedCard(null)} onSend={(text)=>void sendChat(text,false,focusedCard)} onCancel={()=>abort.current?.abort()}/>}</AnimatePresence>
+    <AnimatePresence>{selectedCard&&<CardDrawer key={selectedCard.id} project={project} card={selectedCard} onClose={()=>setSelected(null)} onChange={changeCard} onContext={(patch)=>edit((p)=>({...p,updatedAt:new Date().toISOString(),context:{...p.context,...patch},cards:p.cards.map((c)=>c.id===selectedCard.id?{...c,humanEdited:true,revision:c.revision+1}:c)}))} onClarify={()=>{setFocusedCard(selectedCard.id);setSelected(null);}} onEvidence={()=>{setEvidenceFor(selectedCard.id);setSelected(null);}} onDelete={()=>{edit((p)=>({...p,updatedAt:new Date().toISOString(),cards:p.cards.filter((c)=>c.id!==selectedCard.id).map((c)=>({...c,dependsOn:c.dependsOn.filter((id)=>id!==selectedCard.id)}))}));setSelected(null);}}/>}</AnimatePresence>
+    <AnimatePresence>{focusedCard&&project.cards.find((c)=>c.id===focusedCard)&&<CardChat key={focusedCard} card={project.cards.find((c)=>c.id===focusedCard)!} messages={project.messages.filter((m)=>m.cardId===focusedCard)} generating={generating&&activeCard===focusedCard} stream={activeCard===focusedCard?streamText:''} activity={activity} activities={activityCard===focusedCard?runActivities:[]} cards={project.cards} onOpen={openCard} queueing={generating||queuedPrompts.length>0} blocked={queuedPrompts.length>=10} queue={{items:queuedPrompts.filter(item=>item.cardId===focusedCard),paused:queuePaused,onRemove:(id)=>replaceQueue(queueRef.current.filter(item=>item.id!==id)),onResume:resumeQueue}} onClose={()=>setFocusedCard(null)} onSend={(text,onAccepted)=>void sendChat(text,false,focusedCard,onAccepted)} onCancel={cancelGeneration}/>}</AnimatePresence>
     <AnimatePresence>{evidenceFor!==false&&<EvidenceDialog project={project} cardId={evidenceFor||undefined} onClose={()=>setEvidenceFor(false)} onSave={evidence}/>}</AnimatePresence>
     <AnimatePresence>{proposal&&<ProposalDialog project={project} proposal={proposal} onClose={()=>setProposal(null)} onResolve={resolve}/>}</AnimatePresence>
     <AnimatePresence>{sourcesOpen&&<Modal onClose={()=>setSourcesOpen(false)} label="Fontes do projeto" className="sources-modal"><span className="eyebrow">PESQUISA COM REFERÊNCIAS</span><h2>Fontes do seu projeto</h2><p>Links reunidos durante a construção do plano.</p>{project.sources.length?project.sources.map((source)=><a className="source-reference" key={source.id} href={source.url} target="_blank" rel="noopener noreferrer"><span>{source.title}<ExternalLink size={14}/></span><p>{source.excerpt}</p><small>{new Date(source.consultedAt).toLocaleDateString('pt-BR')} · {source.verified?'Fonte consultada':'Referência não conferida'}</small></a>):<div className="empty-small"><Search size={26}/><p>{health?.research===false?'A pesquisa na web ainda não está conectada. Você pode continuar organizando sua ideia e registrar links nas suas experiências.':'As referências aparecerão aqui quando uma pesquisa for necessária. Peça na conversa, por exemplo: “Pesquise opções na minha cidade”.'}</p></div>}</Modal>}</AnimatePresence>

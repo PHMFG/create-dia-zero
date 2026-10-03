@@ -4,8 +4,8 @@ import { z } from 'zod';
 import * as store from './store';
 import { createProject,createDemoProject,applyHumanEdit,applyTurn,recordEvidence,resolveProposal,importProject,uid } from '../shared/domain';
 import { parseProject,evidenceInputSchema } from '../shared/validation';
-import { generateTurn } from './ai';
-import type { Project,StreamEvent } from '../shared/types';
+import { generateTurn,hasResearchSynthesis,publishCanvasSequentially } from './ai';
+import type { AgentActivity,CanvasCard,CanvasDelta,Project,StreamEvent,TurnResult } from '../shared/types';
 
 export const app=new Hono();
 app.use('/api/*',async(c,next)=>{
@@ -43,22 +43,71 @@ app.post('/api/projects/:id/messages',async c=>{
     const controller=new AbortController();const deadline=setTimeout(()=>controller.abort(),90000);let status='failed';let usage:unknown;
     stream.onAbort(()=>controller.abort());
     const emit=async(event:StreamEvent)=>{if(!stream.aborted)await stream.writeSSE({data:JSON.stringify(event)});};
-    try{
-      const result=await generateTurn(current,input.text,{signal:controller.signal,evidence:input.evidence,focusCardId:input.cardId,onStatus:(text:string)=>{void emit({type:'status',text}).catch(()=>{});},reserveResearch:()=>store.reserveResearch(s,input.runId)});
-      if(controller.signal.aborted)throw new Error('cancelled');
-      // Re-read after generation so edits made while the model ran take precedence.
-      let next:Project|undefined;
+    const heartbeat=setInterval(()=>{if(!stream.aborted)void stream.write(': keep-alive\n\n').catch(()=>{});},10000);
+    let liveSnapshot=current;let streamedReply='';
+    // Keep the model's context baseline separate from snapshots containing
+    // concurrent human edits. Only our successfully applied fields advance it.
+    let modelContextBaseline={...current.context};
+    const activeActivities=new Map<string,AgentActivity>();
+    const onActivity=async(activity:AgentActivity)=>{
+      if(activity.state==='running')activeActivities.set(activity.id,activity);else activeActivities.delete(activity.id);
+      await emit({type:'activity',...activity});
+    };
+    const acknowledgedDeltas=new Set<string>();
+    let deltaQueue:Promise<unknown>=Promise.resolve();
+    const persistTurn=async(result:TurnResult,includeMessage:boolean):Promise<Project>=>{
       for(let attempt=0;attempt<3;attempt++){
-        const latest=await store.get(s,current.id);const candidate=applyTurn(latest,result,current.context);
-        if(input.cardId)candidate.messages[candidate.messages.length-1].cardId=input.cardId;
-        try{next=await store.save(s,candidate,latest.version);break;}
+        if(controller.signal.aborted)throw new Error('cancelled');
+        const latest=await store.get(s,current.id);const candidate=applyTurn(latest,result,{...modelContextBaseline});
+        if(includeMessage){if(input.cardId)candidate.messages[candidate.messages.length-1].cardId=input.cardId;}
+        else candidate.messages=latest.messages;
+        try{const saved=await store.save(s,candidate,latest.version);for(const key of Object.keys(result.contextPatch??{}) as Array<keyof Project['context']>)if(saved.context[key]!==latest.context[key])modelContextBaseline={...modelContextBaseline,[key]:saved.context[key]};liveSnapshot=saved;return saved;}
         catch(error){if(!(error instanceof store.HttpError)||error.status!==409||attempt===2)throw error;}
       }
-      if(!next)throw new store.HttpError(409,'O projeto recebeu várias edições. Seu conteúdo está salvo; tente enviar a mensagem novamente.');
+      throw new store.HttpError(409,'O projeto recebeu várias edições. Seu conteúdo está salvo; tente enviar a mensagem novamente.');
+    };
+    const onDelta=(delta:CanvasDelta):Promise<Project>=>{
+      const commit=async()=>{
+        const key=JSON.stringify(delta);
+        if(acknowledgedDeltas.has(key)){liveSnapshot=await store.get(s,current.id);return liveSnapshot;}
+        const before=await store.get(s,current.id);
+        const saved=await persistTurn({reply:'Atualização incremental do canvas.',...delta,mode:'live'},false);
+        acknowledgedDeltas.add(key);
+        const content=(card:CanvasCard)=>JSON.stringify({...card,position:undefined,pinnedPosition:undefined,revision:undefined});
+        const old=new Map(before.cards.map(card=>[card.id,content(card)]));
+        const changedSources=new Set(saved.sources.filter(source=>JSON.stringify(before.sources.find(previous=>previous.id===source.id))!==JSON.stringify(source)).map(source=>source.id));
+        const changedCardIds=[...new Set([...saved.cards.filter(card=>old.get(card.id)!==content(card)||card.blocks.some(block=>block.sourceIds?.some(id=>changedSources.has(id)))).map(card=>card.id),...before.cards.filter(card=>!saved.cards.some(next=>next.id===card.id)).map(card=>card.id)])];
+        const proposals=saved.proposals.filter(proposal=>!before.proposals.some(previous=>previous.id===proposal.id));
+        const operation=delta.operations[0];
+        const created=operation?.op==='add'&&!before.cards.some(card=>card.id===operation.cardId)?saved.cards.find(card=>card.id===operation.cardId):undefined;
+        const updated=operation&&saved.cards.find(card=>card.id===operation.cardId);
+        const removed=operation?.op==='remove'&&!updated&&before.cards.find(card=>card.id===operation.cardId);
+        const proposedTitle=operation?.card?.title??operation?.patch?.title??before.cards.find(card=>card.id===operation?.cardId)?.title;
+        const relationTitles=delta.operations.length>1&&delta.operations.every(operation=>operation.op==='update'&&operation.patch?.dependsOn!==undefined)?delta.operations.map(operation=>saved.cards.find(card=>card.id===operation.cardId)?.title??operation.patch?.title??'Anotação'):[];
+        const label=created?`Criado: ${created.title}`:removed?`Removido: ${removed.title}`:proposals.length?`Proposta: ${proposedTitle??proposals[0].title}`:relationTitles.length?`Conexões atualizadas: ${relationTitles.join(' · ')}`:updated&&changedCardIds.includes(updated.id)?`Atualizado: ${updated.title}`:Object.keys(delta.contextPatch??{}).length?'Contexto do projeto atualizado':changedSources.size?'Fontes e referências atualizadas':'Projeto atualizado';
+        await emit({type:'project',project:saved,changedCardIds,label}).catch(()=>{});
+        return saved;
+      };
+      const pending=deltaQueue.then(commit,commit);deltaQueue=pending.then(()=>undefined,()=>undefined);return pending;
+    };
+    try{
+      const result=await generateTurn(current,input.text,{signal:controller.signal,evidence:input.evidence,focusCardId:input.cardId,onStatus:(text:string)=>{void emit({type:'status',text}).catch(()=>{});},onActivity,onDelta,onText:async(text:string)=>{await emit({type:'text',text});streamedReply+=text;},reserveResearch:()=>store.reserveResearch(s,input.runId)});
+      if(controller.signal.aborted)throw new Error('cancelled');
+      // Models that omit publication still materialize validated final operations
+      // before their answer. Preserve atomic action priority changes as one batch.
+      if(result.operations.length||Object.keys(result.contextPatch??{}).length||result.sources.some(source=>JSON.stringify(liveSnapshot.sources.find(known=>known.id===source.id))!==JSON.stringify(source))){
+        const researchIds=result.operations.filter(operation=>operation.card?.kind==='research'||liveSnapshot.cards.some(card=>card.id===operation.cardId&&card.kind==='research')).map(operation=>operation.cardId);
+        await publishCanvasSequentially({operations:result.operations,contextPatch:result.contextPatch,sources:result.sources},liveSnapshot,onDelta,{onActivity});
+        if(researchIds.some(id=>!hasResearchSynthesis(liveSnapshot.cards.find(card=>card.id===id),result.sources)&&liveSnapshot.proposals.some(proposal=>proposal.status==='pending'&&proposal.operations.some(operation=>operation.cardId===id))))result.reply='As fontes estão salvas. A síntese da pesquisa entrou em uma proposta para preservar a versão atual da anotação; revise essa proposta antes de aplicar os achados e as lacunas ao cartão.';
+        result.operations=[];delete result.contextPatch;
+      }
+      const next=await persistTurn(result,true);
       usage=result.usage;
-      await emit({type:'text',text:result.reply});await emit({type:'complete',project:next,mode:result.mode});status='complete';
-    }catch(error){await emit({type:'error',error:controller.signal.aborted?'A resposta foi interrompida. Sua mensagem e seu projeto estão salvos.':error instanceof store.HttpError?error.message:'Não foi possível preparar a resposta. Seu projeto está salvo; tente novamente.'});}
-    finally{clearTimeout(deadline);await store.finishRun(s,input.runId,current.id,status,usage);}
+      if(!streamedReply)await emit({type:'text',text:result.reply});
+      else if(result.reply.startsWith(streamedReply)&&result.reply.length>streamedReply.length)await emit({type:'text',text:result.reply.slice(streamedReply.length)});
+      await emit({type:'complete',project:next,mode:result.mode});status='complete';
+    }catch(error){for(const activity of [...activeActivities.values()])await onActivity({...activity,state:'failed'});await emit({type:'error',error:controller.signal.aborted?'A resposta foi interrompida. Sua mensagem e seu projeto estão salvos.':error instanceof store.HttpError?error.message:'Não foi possível preparar a resposta. Seu projeto está salvo; tente novamente.'});}
+    finally{clearInterval(heartbeat);clearTimeout(deadline);await store.finishRun(s,input.runId,current.id,status,usage);}
   });
 });
 app.notFound(c=>c.json({error:'Rota não encontrada.'},404));

@@ -18,17 +18,38 @@ export function makeCard(kind: CanvasCard['kind'], title: string, summary: strin
 }
 
 const laneX = { now: 40, next: 430, later: 820, done: 1210 };
+function cardLayoutHeight(card:CanvasCard):number {
+  const checklist=card.blocks.filter(b=>b.type==='checklist').flatMap(b=>b.items??[]).slice(0,3);
+  const callout=!checklist.length?card.blocks.find(b=>b.type==='callout'):undefined;
+  const explicit=card.blocks.filter(b=>['link','image','location'].includes(b.type));
+  const image=explicit.find(b=>b.type==='image'),location=explicit.find(b=>b.type==='location');
+  const links=explicit.filter(b=>b.type==='link');
+  const media=image?[image,location??links[0]].filter(Boolean):location?[location,links[0]].filter(Boolean):links.slice(0,2);
+  // Match the compact visual preview: 320px cards, 22px auto-height titles,
+  // three summary lines, two checklist lines/item, and at most two media blocks.
+  const titleLines=Math.min(3,Math.max(1,Math.ceil(card.title.length/24)));
+  return 160+titleLines*28+Math.min(3,Math.max(1,Math.ceil(card.summary.length/30)))*24
+    +checklist.reduce((height,item)=>height+Math.max(44,Math.min(2,Math.max(1,Math.ceil(item.text.length/27)))*22+10),0)
+    +(checklist.length?14+(checklist.length-1)*8:0)
+    +(card.blocks.filter(b=>b.type==='checklist').flatMap(b=>b.items??[]).length>3?30:0)
+    +(callout?Math.min(3,Math.max(1,Math.ceil((callout.text?.length??0)/30)))*22+40:0)
+    +media.reduce((height,b)=>height+(b?.type==='image'?200:b?.type==='location'?180:130),0)
+    +(media.length?14+(media.length-1)*8:0);
+}
 /** Explicit layout command. Cards dragged by a human keep their exact position. */
 export function organizeCards(cards: CanvasCard[]): CanvasCard[] {
-  const placed = cards.filter(card => card.pinnedPosition).map(card => ({ ...card.position }));
+  const placed = cards.filter(card => card.pinnedPosition).map(card => ({ ...card.position,height:cardLayoutHeight(card) }));
   const row = { now: 0, next: 0, later: 0, done: 0 };
   return cards.map(card => {
     if (card.pinnedPosition) return copy(card);
-    let position = { x: laneX[card.lane], y: 48 + row[card.lane] * 290 };
-    while (placed.some(item => Math.abs(item.x - position.x) < 350 && Math.abs(item.y - position.y) < 275)) {
-      row[card.lane]++; position = { x: laneX[card.lane], y: 48 + row[card.lane] * 290 };
+    const height=cardLayoutHeight(card);
+    const position = { x: laneX[card.lane], y: Math.max(48,row[card.lane]) };
+    for(;;){
+      const collision=placed.find(item=>Math.abs(item.x-position.x)<350&&position.y<item.y+item.height+48&&position.y+height+48>item.y);
+      if(!collision)break;
+      position.y=collision.y+collision.height+48;
     }
-    row[card.lane]++; placed.push(position);
+    row[card.lane]=position.y+height+48;placed.push({...position,height});
     return { ...copy(card), position };
   });
 }
@@ -175,7 +196,11 @@ function proposal(content: Omit<Proposal, 'id' | 'createdAt' | 'status'>): Propo
 export function applyTurn(project: Project, rawResult: TurnResult, baselineContext: Context = project.context): Project {
   const result = parseTurnResult(rawResult);
   const sources = copy(project.sources);
-  for (const item of result.sources) if (!sources.some(source => source.id === item.id)) sources.push({ ...item, url: new URL(item.url).href });
+  for (const item of result.sources) {
+    const url=new URL(item.url).href,index=sources.findIndex(source=>source.id===item.id);
+    if(index<0)sources.push({...item,url});
+    else if(new URL(sources[index].url).href===url)sources[index]={...sources[index],...item,url,imageUrl:item.imageUrl??sources[index].imageUrl};
+  }
   const sourceIds = new Set(sources.map(source => source.id));
   const operations = cleanOperationSources(result.operations, sourceIds);
   const currentAction = project.cards.find(card => card.kind === 'action' && card.lane === 'now');

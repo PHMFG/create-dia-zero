@@ -8,6 +8,7 @@ import '@fontsource/inter-tight/latin-400.css';
 import '@fontsource/inter-tight/latin-500.css';
 import '@xyflow/react/dist/style.css';
 import './styles.css';
+import './usability.css';
 import App from './App';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);

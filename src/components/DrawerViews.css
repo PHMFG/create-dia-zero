@@ -1,0 +1,79 @@
+.card-drawer .drawer-view-tabs { gap: 23px; }
+.card-drawer .drawer-view-tabs button { gap: 6px; }
+.card-drawer .drawer-view-tabs .drawer-tab-label { padding: 0; background: none; font-size: 14px; color: inherit; }
+.card-drawer .drawer-view-tabs .drawer-history-count { padding: 2px 5px; font-size: 11px; }
+.card-drawer .drawer-scroll[role="tabpanel"]:focus-visible { outline: 2px solid #c6a2e2; outline-offset: -3px; }
+.card-drawer .drawer-reading { color: #71517f; }
+.card-drawer .drawer-reading h3 { font-size: 16px; font-weight: 500; line-height: 1.4; color: #684378; margin: 0 0 10px; }
+.card-drawer .drawer-reading-blocks { display: grid; gap: 15px; }
+.card-drawer .drawer-read-block { position: relative; padding: 1px 32px 1px 0; scroll-margin-top: 12px; }
+.card-drawer .drawer-read-pencil { position: absolute; right: -5px; top: -5px; width: 32px; height: 32px; display: grid; place-items: center; color: #a084b3; border-radius: 7px; opacity: .7; }
+.card-drawer .drawer-read-pencil:hover, .card-drawer .drawer-read-pencil:focus-visible { opacity: 1; background: #f6edfc; color: #8958a8; }
+.card-drawer .drawer-read-pencil:focus-visible { outline: 2px solid #b281d2; outline-offset: 2px; }
+.card-drawer .drawer-reading p { font-size: 16px; line-height: 1.6; margin: 0 0 9px; color: #775883; overflow-wrap: anywhere; }
+.card-drawer .drawer-reading p:last-child { margin-bottom: 0; }
+.card-drawer .drawer-reading p.drawer-reading-empty { font-size: 14px; color: #927aa0; line-height: 1.5; }
+.card-drawer .drawer-reading a:not(.media-link):not(.media-map-link) { color: #8b56aa; }
+.card-drawer .drawer-read-prose a, .card-drawer .drawer-read-callout a, .card-drawer .drawer-read-list a, .card-drawer .drawer-read-checklist a { display: inline; text-decoration: underline; text-underline-offset: 3px; }
+.card-drawer .drawer-read-prose a svg, .card-drawer .drawer-read-callout a svg, .card-drawer .drawer-read-list a svg, .card-drawer .drawer-read-checklist a svg { display: inline-block; vertical-align: middle; margin-left: 3px; }
+.card-drawer .drawer-reading strong { color: #654372; font-weight: 600; }
+.card-drawer .drawer-reading em { color: inherit; }
+.card-drawer .drawer-read-prose h1, .card-drawer .drawer-read-prose h2, .card-drawer .drawer-read-prose h3, .card-drawer .drawer-read-callout h1, .card-drawer .drawer-read-callout h2, .card-drawer .drawer-read-callout h3 { font-size: 16px; margin: 14px 0 7px; font-weight: 500; line-height: 1.4; }
+.card-drawer .drawer-read-prose > :first-child, .card-drawer .drawer-read-callout > :first-child { margin-top: 0; }
+.card-drawer .drawer-reading code { font-size: .88em; background: #f6effa; padding: 1px 4px; border-radius: 3px; }
+.card-drawer .drawer-reading pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f6effa; padding: 10px; border-radius: 7px; font-size: 14px; }
+.card-drawer .drawer-read-callout { border-left: 3px solid #d6b5ed; padding: 11px 13px; background: #faf5fd; border-radius: 0 8px 8px 0; }
+.card-drawer .drawer-read-callout p { font-size: 15px; }
+.card-drawer .drawer-read-list { padding-left: 19px; margin: 0; }
+.card-drawer .drawer-read-list li { padding-left: 3px; margin: 0 0 9px; color: #ab82c5; }
+.card-drawer .drawer-read-list li:last-child { margin-bottom: 0; }
+.card-drawer .drawer-reading p.drawer-checklist-progress { color: #a082b2; font-size: 13px; margin: 0 0 9px; line-height: 1.4; }
+.card-drawer .drawer-read-checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 11px; }
+.card-drawer .drawer-read-checklist li { display: flex; align-items: flex-start; gap: 10px; }
+.card-drawer .drawer-read-checklist li > div { flex: 1; min-width: 0; }
+.card-drawer .drawer-read-checklist .check-box { position: relative; width: 20px; height: 20px; margin-top: 3px; flex-shrink: 0; }
+.card-drawer .drawer-read-checklist .check-box::after { content: ''; position: absolute; inset: -10px; }
+.card-drawer .drawer-read-checklist .is-complete p { color: #a08ca9; text-decoration: line-through; text-decoration-color: #c6abd6; }
+.card-drawer .drawer-read-checklist .check-box:focus-visible { outline: 2px solid #b282d1; outline-offset: 3px; }
+.card-drawer .drawer-read-sources { display: grid; gap: 7px; }
+.card-drawer .drawer-read-source { display: flex; align-items: flex-start; gap: 9px; padding: 8px 9px; border: 1px solid #eee3f5; border-radius: 7px; background: #fcf9ff; font-size: 14px; line-height: 1.5; }
+.card-drawer .drawer-read-source > span { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.card-drawer .drawer-read-source > svg { flex-shrink: 0; margin-top: 3px; }
+.card-drawer .drawer-read-block .media-block { margin: 0; }
+.card-drawer .drawer-reading .media-caption { font-size: 13px; line-height: 1.5; margin-top: 6px; }
+.card-drawer .drawer-context-reading { padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid #efe5f5; }
+.card-drawer .drawer-context-facts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px 18px; margin: 0; }
+.card-drawer .drawer-context-facts > .context-fact-constraints, .card-drawer .drawer-context-facts > .context-fact-goal { grid-column: 1 / -1; }
+.card-drawer .drawer-context-facts dt { font-size: 13px; line-height: 1.45; color: #a084b1; margin-bottom: 3px; }
+.card-drawer .drawer-context-facts dd { margin: 0; }
+.card-drawer .drawer-context-facts dd button { display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; width: 100%; padding: 4px 5px; margin-left: -5px; border-radius: 6px; text-align: left; }
+.card-drawer .drawer-context-facts dd button > span { font-size: 16px; line-height: 1.45; color: #755581; overflow-wrap: anywhere; white-space: pre-wrap; }
+.card-drawer .drawer-context-facts dd button > span.unfilled { color: #ad98bb; font-size: 14px; }
+.card-drawer .drawer-context-facts dd button > svg { flex-shrink: 0; color: #aa8abb; margin-top: 4px; opacity: .6; }
+.card-drawer .drawer-context-facts dd button:hover { background: #faf4fe; }
+.card-drawer .drawer-context-facts dd button:focus-visible { outline: 2px solid #c7a3e2; outline-offset: 2px; }
+.card-drawer .drawer-reading-section-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.card-drawer .drawer-reading-section-title h3 { margin: 0; }
+.card-drawer .drawer-reading-section-title > button { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; line-height: 1.4; color: #a07ab5; padding: 5px; border-radius: 5px; }
+.card-drawer .drawer-reading-section-title > button:hover { background: #f7effd; }
+.card-drawer .drawer-read-dependencies ul { display: grid; gap: 6px; list-style: none; padding: 0; margin: 0; }
+.card-drawer .drawer-read-dependencies li { display: flex; align-items: flex-start; gap: 8px; color: #8a669c; font-size: 14px; line-height: 1.5; }
+.card-drawer .drawer-read-dependencies li svg { flex-shrink: 0; margin-top: 3px; color: #b090c6; }
+.card-drawer .drawer-reading-empty-state { padding: 18px 0 24px; text-align: center; color: #b497c5; }
+.card-drawer .drawer-reading-empty-state p { font-size: 15px; margin: 9px 0 12px; }
+.card-drawer .drawer-reading-empty-state .secondary-button { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; padding: 9px 12px; }
+.card-drawer .drawer-reference-details { border-top: 1px solid #efe5f5; margin-top: 20px; padding-top: 14px; }
+.card-drawer .drawer-reference-details > summary { display: flex; gap: 8px; align-items: center; cursor: pointer; list-style: none; font-size: 14px; line-height: 1.5; color: #8a649f; min-height: 32px; }
+.card-drawer .drawer-reference-details > summary::-webkit-details-marker { display: none; }
+.card-drawer .drawer-reference-details > summary span { flex: 1; }
+.card-drawer .drawer-reference-details > summary small { font-size: 12px; color: #af94be; }
+.card-drawer .drawer-reference-details > summary > svg:last-child { transition: transform .18s ease; }
+.card-drawer .drawer-reference-details[open] > summary > svg:last-child { transform: rotate(180deg); }
+.card-drawer .drawer-reference-details > summary:focus-visible { outline: 2px solid #c6a1e0; outline-offset: 3px; border-radius: 5px; }
+.card-drawer [data-edit-block], .card-drawer [data-context-field], .card-drawer [data-edit-section] { scroll-margin-top: 15px; }
+@media (max-width: 480px) {
+  .card-drawer .drawer-context-facts { grid-template-columns: 1fr; gap: 10px; }
+  .card-drawer .drawer-view-tabs { gap: 19px; }
+  .card-drawer .drawer-read-pencil { width: 36px; height: 36px; opacity: .85; }
+}
+@media (prefers-reduced-motion: reduce) { .card-drawer .drawer-reference-details > summary > svg:last-child { transition: none; } }

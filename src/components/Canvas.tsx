@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import {
   applyNodeChanges, Background, BackgroundVariant, BaseEdge, Controls, EdgeLabelRenderer,
   getSmoothStepPath, Handle, MarkerType, MiniMap, Panel, Position, ReactFlow,
-  useNodesState, type Connection, type Edge, type EdgeProps, type Node, type NodeChange, type NodeProps,
+  useNodesState, type Connection, type Edge, type EdgeProps, type Node, type NodeChange, type NodeProps, type ReactFlowInstance,
 } from '@xyflow/react';
 import { ArrowUpRight, Check, Circle, FileText, Flag, FlaskConical, GripHorizontal, HelpCircle, Lightbulb, Link2, Map as ContextMap, MapIcon, MessageCircle, Search, Sparkles, X } from 'lucide-react';
 import type { Block, CanvasCard, NodeKind, Project, Source } from '../../shared/types';
@@ -102,7 +102,6 @@ const CreateDependency = memo(function CreateDependency({ id, source, target, so
 });
 const nodeTypes = { createCard: CreateCard };
 const edgeTypes = { createDependency: CreateDependency };
-const initialFitOptions = { padding: 0.18, minZoom: 0.85, maxZoom: 1 };
 const defaultEdgeOptions = { type: 'createDependency', markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: '#c8b5dd' } };
 
 export interface CanvasProps {
@@ -127,8 +126,15 @@ function GraphCanvas(props: CanvasProps) {
   })), [project.cards, project.sources, props.onOpen, props.onClarify, props.onTitle, props.onCheck, props.changedCardIds]);
   const [nodes, setNodes] = useNodesState<CreateNode>(incomingNodes);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
-  const [showMap, setShowMap] = useState(false);
+  const [showMap, setShowMap] = useState(() => !!project.demo && project.cards.length > 6);
   const [showHelp, setShowHelp] = useState(false);
+  const flow = useRef<ReactFlowInstance<CreateNode, DependencyEdge> | null>(null);
+  // Capture the first view once: incoming AI updates must not move the viewport.
+  const [initialFitOptions] = useState(() => {
+    const action = project.demo && project.cards.length > 6 ? project.cards.find(card => card.kind === 'action' && card.lane === 'now') : undefined;
+    return { padding: 0.18, minZoom: 0.85, maxZoom: 1, ...(action ? { nodes: [{ id: action.id }] } : {}) };
+  });
+  const currentAction = project.cards.find(card => card.kind === 'action' && card.lane === 'now');
   const pendingPositions = useRef(new Map<string, { x: number; y: number }>());
   const draggedIds = useRef(new Set<string>());
 
@@ -163,6 +169,7 @@ function GraphCanvas(props: CanvasProps) {
 
   return <ReactFlow<CreateNode, DependencyEdge>
     className="create-flow" nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
+    onInit={instance => { flow.current = instance; }}
     onNodesChange={handleNodesChange}
     onNodeDragStart={(_, node) => draggedIds.current.add(node.id)}
     onNodeDragStop={(_, node) => { draggedIds.current.delete(node.id); pendingPositions.current.set(node.id, node.position); onMove(node.id, node.position); }}
@@ -180,7 +187,7 @@ function GraphCanvas(props: CanvasProps) {
     onEdgeClick={(_, edge) => setSelectedEdgeId(edge.id)}
     onEdgesChange={changes => { for (const change of changes) if (change.type === 'select') setSelectedEdgeId(current => change.selected ? change.id : current === change.id ? null : current); }}
     onPaneClick={() => setSelectedEdgeId(null)} onNodeClick={() => setSelectedEdgeId(null)}
-    fitView fitViewOptions={initialFitOptions} minZoom={0.35} maxZoom={1.6} nodesConnectable={!!onConnect}
+    fitView fitViewOptions={initialFitOptions} minZoom={project.demo && project.cards.length > 6 ? 0.06 : 0.35} maxZoom={1.6} nodesConnectable={!!onConnect}
     connectionRadius={34} panOnDrag zoomOnScroll zoomOnPinch preventScrolling zoomOnDoubleClick={false}
     deleteKeyCode={null} defaultEdgeOptions={defaultEdgeOptions} aria-label="Canvas do seu projeto"
     ariaLabelConfig={{ 'controls.zoomIn.ariaLabel': 'Aproximar o canvas', 'controls.zoomOut.ariaLabel': 'Afastar o canvas', 'controls.fitView.ariaLabel': 'Enquadrar todos os cartões', 'minimap.ariaLabel': 'Visão geral do canvas' }}>
@@ -189,7 +196,7 @@ function GraphCanvas(props: CanvasProps) {
     {showMap && <MiniMap className="canvas-minimap" position="bottom-right" pannable zoomable nodeColor={node => (node.data as CardData).card.lane === 'now' ? '#b387d7' : '#e3d5ef'} maskColor="#fcfafe99" />}
     <Panel position="bottom-right" className={`canvas-navigation-panel ${showMap ? 'map-open' : ''}`}>
       {showHelp && <div className="canvas-navigation-help"><strong>Seu espaço de trabalho</strong><p>Arraste o cabeçalho para mover. Ligue o ponto inferior ao superior de um cartão que depende dele. Clique na linha para ver a relação ou remover.</p><p>Arraste o fundo para navegar. Ajuste o zoom com a roda do mouse ou os controles.</p></div>}
-      <div className="canvas-navigation-buttons"><button type="button" className={showMap ? 'active' : ''} onClick={() => setShowMap(value => !value)} aria-pressed={showMap} aria-label={showMap ? 'Ocultar visão geral' : 'Mostrar visão geral'} title="Visão geral"><MapIcon size={15} /></button><button type="button" className={showHelp ? 'active' : ''} onClick={() => setShowHelp(value => !value)} aria-expanded={showHelp} aria-label={showHelp ? 'Fechar ajuda do canvas' : 'Como usar o canvas'} title="Como usar"><HelpCircle size={15} /></button></div>
+      <div className="canvas-navigation-buttons">{currentAction && <button type="button" onClick={() => { void flow.current?.fitView({ nodes: [{ id: currentAction.id }], padding: 0.22, minZoom: 0.85, maxZoom: 1, duration: 260 }); }} aria-label="Ir ao próximo passo" title="Ir ao próximo passo"><Flag size={15} /></button>}<button type="button" className={showMap ? 'active' : ''} onClick={() => setShowMap(value => !value)} aria-pressed={showMap} aria-label={showMap ? 'Ocultar visão geral' : 'Mostrar visão geral'} title="Visão geral"><MapIcon size={15} /></button><button type="button" className={showHelp ? 'active' : ''} onClick={() => setShowHelp(value => !value)} aria-expanded={showHelp} aria-label={showHelp ? 'Fechar ajuda do canvas' : 'Como usar o canvas'} title="Como usar"><HelpCircle size={15} /></button></div>
     </Panel>
   </ReactFlow>;
 }

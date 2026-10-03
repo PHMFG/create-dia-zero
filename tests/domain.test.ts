@@ -162,7 +162,7 @@ describe('create project domain', () => {
 
   it('invalidates a recommendation proposal when its context changes', () => {
     const project = createDemoProject();
-    const action = project.cards.find(card => card.kind === 'action')!;
+    const action = project.cards.find(card => card.kind === 'action' && card.lane === 'now')!;
     const proposed = applyTurn(project, result({ proposal: { title: 'Preparar um pop-up', reason: 'Com o orçamento atual', operations: [{ op: 'update', cardId: action.id, patch: { summary: 'Comprar equipamentos de R$ 2.000' } }] } }));
     const changed = applyHumanEdit(proposed, proposed.cards, { budget: 'R$ 200' });
     expect(changed.cards.find(card => card.id === action.id)?.revision).toBeGreaterThan(action.revision);
@@ -171,7 +171,7 @@ describe('create project domain', () => {
 
   it('keeps a proposal fresh when its own turn also updates the context', () => {
     const project = createDemoProject();
-    const action = project.cards.find(card => card.kind === 'action')!;
+    const action = project.cards.find(card => card.kind === 'action' && card.lane === 'now')!;
     const next = applyTurn(project, result({ contextPatch: { budget: 'R$ 800' }, proposal: { title: 'Adaptar o teste', reason: 'Usar o orçamento atualizado', operations: [{ op: 'update', cardId: action.id, expectedRevision: action.revision, patch: { summary: 'Fazer um teste com custo abaixo de R$ 800' } }] } }));
     const accepted = resolveProposal(next, next.proposals[0].id, true);
     expect(accepted.proposals[0].status).toBe('accepted');
@@ -230,11 +230,12 @@ describe('create project domain', () => {
   it('keeps the explicit Chabor demo distinct from fresh project creation', () => {
     const demo = createDemoProject();
     expect(demo.demo).toBe(true);
-    expect(demo.cards).toHaveLength(3);
+    expect(demo.cards).toHaveLength(10);
     expect(demo.cards.every(card => card.origin === 'demo')).toBe(true);
-    expect(demo.cards.find(card => card.kind === 'action')?.title).toBe('Conversar antes do primeiro pop-up');
-    expect(demo.evidence).toHaveLength(0);
-    expect(demo.messages[0].text).toContain('demonstração');
+    expect(demo.cards.filter(card => card.kind === 'action' && card.lane === 'now')).toHaveLength(1);
+    expect(demo.evidence).toHaveLength(1);
+    expect(demo.evidence[0].origin).toBe('demo');
+    expect(demo.messages[0].text).toContain('fictícios');
   });
 
   it('creates the basic fallback action only after collecting the real context', () => {

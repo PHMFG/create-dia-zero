@@ -95,24 +95,99 @@ export function createProject(idea: string): Project {
 }
 
 export function createDemoProject(): Project {
-  const project = createProject('Chabor — uma loja cozy de matcha para descobrir sabores e fazer uma pausa.');
+  const project = createProject('Chabor — uma marca cozy de matcha para descobrir sabores e fazer uma pausa.');
   project.title = 'Chabor · demonstração'; project.demo = true;
-  project.context = { ...project.context, audience: 'Estudantes e jovens profissionais curiosos sobre matcha', city: 'Porto Alegre', budget: 'R$ 3.000 para testar a ideia', availability: 'Duas tardes por semana', goal: 'Descobrir se as pessoas voltariam a comprar' };
-  project.cards[0].blocks.push(paragraph('Cenário preparado para demonstração. Público, cidade e orçamento são exemplos, não resultados de pesquisa.'));
-  const hypothesis = makeCard('hypothesis', 'Uma pausa com matcha', 'Descobrir como estudantes e jovens profissionais escolhem bebidas e lugares para fazer uma pausa.', [
-    paragraph('Hipótese de demonstração: uma bebida de matcha em um ambiente acolhedor pode ser uma alternativa para esse público. Ainda precisamos observar experiências reais.'),
-    { id: uid('block'), type: 'callout', text: 'Este cenário é ilustrativo; nenhuma demanda foi comprovada.' },
-  ], 'next', [project.cards[0].id]);
-  const action = makeCard('action', 'Conversar antes do primeiro pop-up', 'Ouça três pessoas sobre a última compra de uma bebida fora de casa.', [
-    { id: uid('block'), type: 'heading', text: 'Seu primeiro teste' },
-    paragraph('Converse com estudantes e jovens profissionais em Porto Alegre. Antes de apresentar a Chabor, pergunte sobre a última bebida que compraram fora de casa, por que escolheram aquele lugar e quanto gastaram.'),
-    checklist(['Escolher três pessoas do público de exemplo', 'Perguntar sobre a última compra e a escolha do lugar', 'Anotar frases, comportamentos e dificuldades', 'Registrar o que aconteceu para revisar a hipótese']),
-    { id: uid('block'), type: 'callout', text: 'Completar a checklist organiza a atividade. Evidência de demanda exige interpretar o que aconteceu.' },
-  ], 'now', [hypothesis.id]);
+  project.context = { ...project.context, audience: 'Exemplo: estudantes e jovens profissionais curiosos sobre matcha', city: 'Porto Alegre (região de exemplo)', budget: 'R$ 3.000 disponíveis no cenário; nenhum valor foi gasto', availability: 'Duas tardes por semana (exemplo)', goal: 'Aprender se uma oferta simples desperta interesse suficiente para justificar outro teste' };
+  const context = project.cards[0];
+  context.title = 'Ideia · uma pausa com matcha';
+  context.summary = 'Uma marca cozy de matcha em Porto Alegre. Este projeto é um exemplo guiado; público, região e orçamento são dados ilustrativos.';
+  context.blocks = [
+    paragraph('Ponto de partida: bebidas com matcha, sabores fáceis de explorar e um ritual acolhedor de pausa.'),
+    { id: uid('block'), type: 'callout', text: 'Exemplo didático: nenhuma operação, entrevista ou venda da Chabor aconteceu de verdade.' },
+    { id: uid('block'), type: 'location', address: 'Porto Alegre, Rio Grande do Sul, Brasil', caption: 'Região de exemplo, sem endereço ou marcador específico.' },
+  ];
+  const hypothesis = makeCard('hypothesis', 'Hipótese · curiosidade vira intenção?', 'Uma oferta pequena e acolhedora pode interessar a pessoas que já compram bebidas fora de casa.', [
+    paragraph('Hipótese a investigar: estudantes e jovens profissionais de Porto Alegre podem querer experimentar matcha se entenderem o sabor, o preço e onde encontrar a bebida.'),
+    paragraph('O que ainda não sabemos: familiaridade com matcha, ocasião de consumo, faixa de preço aceitável e barreiras para experimentar.'),
+    { id: uid('block'), type: 'callout', text: 'É uma pergunta de trabalho, não uma conclusão sobre o público.' },
+  ], 'done', [context.id]);
+  const sebraeId = uid('source');
+  const sebraeUrl = 'https://sebrae.com.br/sites/PortalSebrae/cursosonline/analise-de-negocio-pesquisa-de-mercado%2Cf380b8a6a28bb610VgnVCM1000004c00210aRCRD?codSegmento=8&origem=segmento';
+  const research = makeCard('research', 'Pesquisa · preparar perguntas sem induzir', 'Roteiro de descoberta e referências para consulta; nenhuma fonte sustenta uma conclusão sobre a Chabor.', [
+    paragraph('Referência manual: “The Mom Test”, de Rob Fitzpatrick, como inspiração para perguntar sobre comportamentos passados em vez de elogios à ideia.'),
+    { id: uid('block'), type: 'link', url: sebraeUrl, caption: 'Sebrae · curso sobre pesquisa de mercado. Link institucional conferido; conteúdo não usado para validar a hipótese da Chabor.', sourceIds: [sebraeId] },
+    { id: uid('block'), type: 'callout', text: 'Pista de leitura, não evidência do mercado local. As conversas e conclusões deste quadro continuam sendo fictícias.' },
+  ], 'done', [hypothesis.id]);
+  const interview = makeCard('action', 'Teste concluído · entrevista de exemplo', 'Roteiro demonstrativo com três conversas fictícias sobre compras recentes de bebidas.', [
+    { id: uid('block'), type: 'heading', text: 'Roteiro executável' },
+    paragraph('Se fosse conduzir entrevistas reais em Porto Alegre, convide pessoas do público escolhido e peça autorização para anotar. Não apresente a solução até entender o episódio passado.'),
+    checklist([
+      'Conte sobre a última bebida que comprou fora de casa. Quando e onde foi?',
+      'O que estava acontecendo e o que fez você escolher aquele lugar ou bebida?',
+      'Quanto pagou? O que quase fez você escolher outra opção?',
+      'Como resolveu a vontade depois? O que foi frustrante ou conveniente?',
+    ]),
+    { id: uid('block'), type: 'callout', text: 'Nesta tela, a atividade aparece concluída apenas para contar a história do exemplo; nenhuma entrevista real foi feita.' },
+  ], 'done', [research.id]);
+  interview.blocks.find(block => block.type === 'checklist')!.items!.forEach(item => { item.checked = true; });
+  interview.status = 'done';
+  const evidenceCard = makeCard('evidence', 'Relato simulado · três conversas fictícias', 'Exemplo inventado para ensinar a separar observação, interpretação e lacuna.', [
+    paragraph('Relato fictício A: “Queria algo gelado no intervalo; escolhi o lugar conhecido porque estava com pressa.” Relato fictício B: “Provei matcha uma vez, mas não sabia o que esperar do sabor.”'),
+    paragraph('Relato fictício C: “Eu comparo o preço com café e normalmente decido pelo que cabe no caminho.” Estas frases foram criadas para a demonstração; não pertencem a entrevistados.'),
+    { id: uid('block'), type: 'callout', text: 'Evidência simulada, não pesquisa de mercado. Não generalize para estudantes ou jovens profissionais de Porto Alegre.' },
+  ], 'done', [interview.id]);
+  const learning = makeCard('note', 'Leitura do exemplo · o que falta saber', 'As frases fictícias sugerem perguntas melhores, mas não estimam demanda.', [
+    paragraph('Possíveis pistas a verificar: conveniência do local, clareza sobre o sabor e comparação de preço com bebidas conhecidas.'),
+    paragraph('Lacunas: frequência dessas necessidades, resposta a uma oferta concreta, disposição de deixar contato e diferença entre curiosidade e intenção de compra.'),
+    { id: uid('block'), type: 'callout', text: 'As pistas derivam de relatos inventados. Só observações reais podem atualizar esta leitura.' },
+  ], 'done', [evidenceCard.id]);
+  const decision = makeCard('decision', 'Decisão de exemplo · testar interesse gratuito', 'Não comprar equipamentos nem abrir um pop-up. Primeiro, observar uma ação pequena e reversível.', [
+    paragraph('Decisão ilustrativa baseada somente no relato simulado: preparar uma descrição simples da bebida e medir quantas pessoas aceitariam entrar gratuitamente numa lista de interesse.'),
+    paragraph('Se poucas pessoas se interessarem, revisar sabor explicado, ocasião e público. Se houver interesse, ainda será preciso testar preço, operação e retorno em um experimento posterior.'),
+    { id: uid('block'), type: 'callout', text: 'Esta decisão não foi validada. Não houve pré-reservas, pagamentos, clientes nem venda.' },
+  ], 'done', [evidenceCard.id, learning.id]);
+  const offer = makeCard('note', 'Oferta ilustrativa · números para planejar', 'Cenários hipotéticos ajudam a formular perguntas; não são preços aceitos nem custos cotados.', [
+    paragraph('Cenário A (hipótese): preço R$ 16 − ingredientes e copo R$ 6 = R$ 10 de margem de contribuição por bebida, antes de taxas, trabalho e custos fixos.'),
+    paragraph('Cenário B (hipótese): preço R$ 20 − ingredientes e copo R$ 8 = R$ 12 antes dos demais custos. Os valores são redondos e fictícios, não pesquisa com fornecedores.'),
+    { id: uid('block'), type: 'callout', text: 'Não cobrar nesta etapa. Uma lista gratuita mede um sinal inicial de interesse, não compra, margem real ou viabilidade.' },
+  ], 'next', [decision.id]);
+  const action = makeCard('action', 'Agora · testar uma pré-reserva gratuita', 'Convide dez pessoas a sinalizar interesse sem pagar.', [
+    { id: uid('block'), type: 'heading', text: 'Um teste simples, antes de vender' },
+    paragraph('Crie uma imagem ou mensagem simples com a ideia de uma bebida gelada de matcha, sabor explicado em linguagem direta e uma faixa de preço hipotética. Em Porto Alegre, mostre a dez pessoas que se encaixem no público escolhido.'),
+    checklist([
+      'Escrever a oferta e dizer que é um conceito em teste, ainda sem produto à venda',
+      'Perguntar: “Você quer deixar seu contato para receber novidades?”; anotar sim, não ou dúvida',
+      'Se a pessoa quiser, registrar interesse numa lista gratuita; não pedir pagamento nem prometer data',
+      'Anotar quantas pessoas viram a oferta e as razões para aceitar, recusar ou hesitar',
+    ]),
+    { id: uid('block'), type: 'callout', text: 'Critério apenas ilustrativo: observar pelo menos 4 manifestações gratuitas entre 10 convites para decidir se vale testar outra versão. Qualquer resultado será um sinal inicial e não valida a hipótese.' },
+  ], 'now', [decision.id, offer.id]);
   action.status = 'ready';
-  project.cards = organizeCards([...project.cards, hypothesis, action]);
-  project.cards.forEach(card => { card.origin = 'demo'; });
-  project.messages = [{ id: uid('message'), role: 'assistant', text: 'Este é um projeto de demonstração, com contexto de exemplo. Nenhuma entrevista foi realizada ainda. Que experiência você quer explorar primeiro?', createdAt: timestamp() }];
+  const measure = makeCard('note', 'Depois do teste · registrar e decidir', 'Próximo ciclo: comparar o que aconteceu com a hipótese e escolher uma pergunta mais estreita.', [
+    paragraph('Registre data, contexto, número de convites, respostas e frases exatas. Separe respostas observadas de explicações que você inferiu.'),
+    paragraph('Depois, decida: ajustar a mensagem, conversar sobre preço ou encerrar a hipótese. Não transforme curiosidade em previsão de vendas.'),
+    { id: uid('block'), type: 'callout', text: 'Este passo ainda não aconteceu. Só avance quando houver respostas reais e consentidas.' },
+  ], 'next', [action.id]);
+  const cards = [context, hypothesis, research, interview, evidenceCard, learning, decision, offer, action, measure];
+  // Coluna principal de cima para baixo e ramificações laterais; cada faixa tem
+  // espaço conservador para os cartões altos sem depender de pin de posição humana.
+  const positions: Record<string, { x: number; y: number }> = {
+    [context.id]: { x: 80, y: 70 },
+    [hypothesis.id]: { x: 80, y: 710 },
+    [research.id]: { x: 80, y: 1350 },
+    [interview.id]: { x: 80, y: 1990 },
+    [evidenceCard.id]: { x: 80, y: 2630 },
+    [learning.id]: { x: 500, y: 3270 },
+    [decision.id]: { x: 80, y: 3910 },
+    [offer.id]: { x: 500, y: 4550 },
+    [action.id]: { x: 80, y: 5190 },
+    [measure.id]: { x: 80, y: 5830 },
+  };
+  for (const card of cards) { card.position = positions[card.id]; card.origin = 'demo'; }
+  project.cards = cards;
+  project.evidence = [{ id: uid('evidence'), cardId: evidenceCard.id, type: 'interview', text: 'Registro didático: relatos A, B e C descritos no cartão são inteiramente fictícios; nenhuma entrevista aconteceu.', links: [], createdAt: timestamp(), origin: 'demo' }];
+  project.sources = [{ id: sebraeId, title: 'Sebrae · Análise de negócio: pesquisa de mercado', url: sebraeUrl, consultedAt: timestamp(), excerpt: 'Referência institucional para consultar sobre pesquisa de mercado; não foi usada como evidência sobre a hipótese da Chabor.', verified: false }];
+  project.messages = [{ id: uid('message'), role: 'assistant', text: 'Este projeto apresenta o ciclo ideia → hipótese → teste → evidência → decisão → novo teste. Os relatos e valores são fictícios. Agora, a única ação proposta é medir interesse numa lista gratuita, sem cobrança e sem alegar validação.', createdAt: timestamp() }];
   return project;
 }
 

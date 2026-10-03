@@ -16,6 +16,8 @@ Aplicativo público: **[create-dia-zero.vercel.app](https://create-dia-zero.verc
 
 Sem cadastro: o Supabase cria uma identidade anônima persistida neste navegador. Os projetos são privados para essa identidade. O link de um projeto não dá acesso a outro visitante. **Exporte uma cópia JSON antes de limpar os dados do navegador ou mudar de dispositivo.** Importar cria um projeto independente. Há no máximo três projetos por sessão.
 
+O exemplo Chabor reúne dez cartões nos sete tipos do canvas: ideia, hipótese, pesquisa, ação, evidência, decisão e anotação. Seu fluxo conta uma entrevista fictícia, a leitura desse relato e a escolha de um próximo teste gratuito. Valores e resultados são ilustrativos; a referência do Sebrae é manual e não está marcada como pesquisa verificada. O canvas abre no próximo passo, com minimapa e um botão para voltar à ação. Novas cópias recebem o exemplo atualizado; projetos já salvos preservam suas edições.
+
 ## Acompanhamento da IA
 
 A conversa mostra uma sequência de atividades com início, conclusão ou falha: interpretação da mensagem, leitura do projeto, pesquisa, cálculos e salvamento de cada anotação. Cartões aceitos aparecem um por vez, depois de salvos; o histórico oferece acesso direto ao cartão afetado. O selo **Atualizado** permanece até você abrir o cartão ou iniciar outra conversa. Mudanças de prioridade continuam agrupadas em propostas para revisão.

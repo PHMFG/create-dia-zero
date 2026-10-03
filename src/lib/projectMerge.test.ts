@@ -21,13 +21,13 @@ describe('late response merges', () => {
   it('preserves a checked item and revised budget while keeping the completed remote conversation', () => {
     const base=createDemoProject(),local=structuredClone(base),remote=structuredClone(base);
     local.context.budget='R$ 250';
-    const checklist=local.cards.find((c)=>c.kind==='action')!.blocks.find((b)=>b.type==='checklist')!;
+    const checklist=local.cards.find((c)=>c.kind==='action'&&c.lane==='now')!.blocks.find((b)=>b.type==='checklist')!;
     checklist.items![0].checked=true;
     remote.context.city='Porto Alegre';remote.context.budget='R$ 1.000';
     remote.messages.push({id:'answer',role:'assistant',text:'Resposta concluída',createdAt:new Date().toISOString()});
     const result=mergeIncoming(base,local,remote);
     expect(result.context.budget).toBe('R$ 250');expect(result.context.city).toBe('Porto Alegre');
-    expect(result.cards.find((c)=>c.kind==='action')!.blocks.find((b)=>b.type==='checklist')!.items![0].checked).toBe(true);
+    expect(result.cards.find((c)=>c.kind==='action'&&c.lane==='now')!.blocks.find((b)=>b.type==='checklist')!.items![0].checked).toBe(true);
     expect(result.messages.at(-1)?.text).toBe('Resposta concluída');
   });
   it('keeps the incoming state when no local content changed',()=>{const base=createProject('Uma ideia de negócio');const remote={...structuredClone(base),version:3};expect(mergeIncoming(base,base,remote)).toEqual(remote);});
@@ -45,7 +45,7 @@ describe('late response merges', () => {
   });
   it('merges checklist edits with remote item and block updates by ID',()=>{
     const base=createDemoProject(),local=structuredClone(base),remote=structuredClone(base);
-    const cardId=base.cards.find(card=>card.kind==='action')!.id;
+    const cardId=base.cards.find(card=>card.kind==='action'&&card.lane==='now')!.id;
     const baseCard=base.cards.find(card=>card.id===cardId)!;
     const localCard=local.cards.find(card=>card.id===cardId)!;
     const remoteCard=remote.cards.find(card=>card.id===cardId)!;
@@ -74,7 +74,7 @@ describe('late response merges', () => {
   });
   it('protects a locally deleted block and merges independent source references',()=>{
     const base=createDemoProject(),local=structuredClone(base),remote=structuredClone(base);
-    const cardId=base.cards.find(card=>card.kind==='action')!.id;
+    const cardId=base.cards.find(card=>card.kind==='action'&&card.lane==='now')!.id;
     const baseCard=base.cards.find(card=>card.id===cardId)!;
     const localCard=local.cards.find(card=>card.id===cardId)!;
     const remoteCard=remote.cards.find(card=>card.id===cardId)!;
@@ -92,7 +92,7 @@ describe('late response merges', () => {
   });
   it('keeps a locally edited block when the remote snapshot deletes it',()=>{
     const base=createDemoProject(),local=structuredClone(base),remote=structuredClone(base);
-    const cardId=base.cards.find(card=>card.kind==='action')!.id;
+    const cardId=base.cards.find(card=>card.kind==='action'&&card.lane==='now')!.id;
     const blockId=base.cards.find(card=>card.id===cardId)!.blocks.find(block=>block.type==='paragraph')!.id;
     local.cards.find(card=>card.id===cardId)!.blocks.find(block=>block.id===blockId)!.text='Minha versão preservada';
     remote.cards.find(card=>card.id===cardId)!.blocks=remote.cards.find(card=>card.id===cardId)!.blocks.filter(block=>block.id!==blockId);
@@ -103,7 +103,7 @@ describe('late response merges', () => {
   });
   it('keeps a local block reorder while inserting a newly published remote block',()=>{
     const base=createDemoProject(),local=structuredClone(base),remote=structuredClone(base);
-    const cardId=base.cards.find(card=>card.kind==='action')!.id;
+    const cardId=base.cards.find(card=>card.kind==='action'&&card.lane==='now')!.id;
     const localCard=local.cards.find(card=>card.id===cardId)!;
     const remoteCard=remote.cards.find(card=>card.id===cardId)!;
     const [first,second,...rest]=localCard.blocks;

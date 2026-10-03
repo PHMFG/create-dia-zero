@@ -69,7 +69,13 @@ function mergeStringIds(before: string[] = [], local: string[] = [], remote: str
 }
 
 function mergeItems(before: NonNullable<CanvasCard['blocks'][number]['items']>, local: NonNullable<CanvasCard['blocks'][number]['items']>, remote: NonNullable<CanvasCard['blocks'][number]['items']>) {
-  return mergeById(before, local, remote);
+  const localById = new Map(local.map(item => [item.id, item]));
+  return mergeById(before, local, remote).map(item => {
+    const current = localById.get(item.id);
+    // Once the user has edited a checklist item, preserve its completion state
+    // even when that state matched the request baseline and only its text changed.
+    return current?.humanEdited ? { ...item, checked: current.checked, humanEdited: true } : item;
+  });
 }
 
 function mergeBlock(before: CanvasCard['blocks'][number], local: CanvasCard['blocks'][number], remote: CanvasCard['blocks'][number]) {

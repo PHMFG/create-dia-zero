@@ -27,13 +27,13 @@ export async function session(request: Request): Promise<StoreSession> {
 const local = (s: StoreSession) => { if (!memory.has(s.owner)) memory.set(s.owner, new Map()); return memory.get(s.owner)!; };
 export async function list(s: StoreSession): Promise<Project[]> {
   if (!s.db) return [...local(s).values()].map(p => structuredClone(p)).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
-  const { data, error } = await s.db.from('create_projects').select('document').order('updated_at', { ascending: false }).limit(3);
+  const { data, error } = await s.db.from('create_projects').select('document').eq('owner_id', s.owner).order('updated_at', { ascending: false }).limit(3);
   if (error) throw new HttpError(503, 'Não foi possível abrir seus projetos. Tente novamente.');
   return (data ?? []).map(r => r.document as Project);
 }
 export async function get(s: StoreSession, id: string): Promise<Project> {
   if (!s.db) { const p = local(s).get(id); if (!p) throw new HttpError(404, 'Projeto não encontrado.'); return structuredClone(p); }
-  const { data, error } = await s.db.from('create_projects').select('document').eq('id',id).maybeSingle();
+  const { data, error } = await s.db.from('create_projects').select('document').eq('id',id).eq('owner_id',s.owner).maybeSingle();
   if (error) throw new HttpError(503, 'Não foi possível abrir o projeto.');
   if (!data) throw new HttpError(404, 'Projeto não encontrado nesta sessão.');
   return data.document as Project;
@@ -53,7 +53,7 @@ export async function insert(s: StoreSession, p: Project): Promise<Project> {
 }
 export async function save(s: StoreSession,p:Project,expected:number):Promise<Project> {
   if (!s.db) { const existing = local(s).get(p.id); if (!existing || existing.version !== expected) throw new HttpError(409,'O projeto mudou em outra janela. Reabra para continuar.'); local(s).set(p.id,structuredClone(p)); return p; }
-  const { data,error } = await s.db.from('create_projects').update({document:p,version:p.version,updated_at:p.updatedAt}).eq('id',p.id).eq('version',expected).select('id');
+  const { data,error } = await s.db.from('create_projects').update({document:p,version:p.version,updated_at:p.updatedAt}).eq('id',p.id).eq('owner_id',s.owner).eq('version',expected).select('id');
   if (error) throw new HttpError(503,'Não foi possível salvar. Seu texto foi preservado para tentar novamente.');
   if (!data?.length) throw new HttpError(409,'O projeto mudou em outra janela. Reabra para continuar.');
   return p;
@@ -61,7 +61,7 @@ export async function save(s: StoreSession,p:Project,expected:number):Promise<Pr
 export async function remove(s:StoreSession,id:string) {
   await get(s,id);
   if (!s.db) {local(s).delete(id);locks.delete(id);return;}
-  const {error}=await s.db.from('create_projects').delete().eq('id',id);
+  const {error}=await s.db.from('create_projects').delete().eq('id',id).eq('owner_id',s.owner);
   if(error)throw new HttpError(503,'Não foi possível remover o projeto.');
 }
 export async function reserveRun(s:StoreSession,projectId:string,runId:string):Promise<boolean> {
@@ -82,7 +82,11 @@ export async function reserveRun(s:StoreSession,projectId:string,runId:string):P
     locks.set(projectId, { owner: s.owner, runId, expiresAt: now + 120000 }); return true;
   }
   const {data,error}=await s.db.rpc('create_reserve_run',{p_project_id:projectId,p_run_id:runId});
-  if(error)throw new HttpError(error.message.includes('limit')?429:409,error.message.includes('limit')?'Você chegou ao limite de uso de hoje. Continue editando o canvas.':'Já existe uma resposta em andamento. Aguarde ou tente novamente.');
+  if(error){
+    if(error.code==='P0001')throw new HttpError(429,'Você chegou ao limite de uso de hoje. Continue editando o canvas.');
+    if(error.code==='55000')throw new HttpError(409,'Já existe uma resposta sendo preparada para este projeto.');
+    throw new HttpError(503,'Não foi possível iniciar a resposta agora. Tente novamente.');
+  }
   return data===true;
 }
 export async function finishRun(s:StoreSession,runId:string,projectId:string,status:string,usage?:unknown) {
@@ -109,5 +113,7 @@ export async function reserveResearch(s:StoreSession,runId:string):Promise<boole
     if (reserved.filter(item => item.researchMonth === month).length * 3 + 3 > 750) return false;
     run.researchAt = now; run.researchDay = day; run.researchMonth = month; return true;
   }
-  const {data,error}=await s.db.rpc('create_reserve_research',{p_run_id:runId});return !error&&data===true;
+  const {data,error}=await s.db.rpc('create_reserve_research',{p_run_id:runId});
+  if(error)throw new HttpError(503,'Não foi possível reservar uma pesquisa agora. Tente novamente.');
+  return data===true;
 }

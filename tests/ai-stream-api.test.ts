@@ -24,6 +24,40 @@ beforeEach(() => { vi.stubEnv('SUPABASE_URL', ''); vi.stubEnv('SUPABASE_PUBLISHA
 afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); });
 
 describe('persisted incremental SSE', () => {
+  it('releases a reserved run when the request aborts while its initial save is pending', async () => {
+    const { token, project, session } = await setup();
+    let releaseSave!: () => void; let markSaveEntered!: () => void;
+    const saveEntered = new Promise<void>(resolve => { markSaveEntered = resolve; });
+    const saveGate = new Promise<void>(resolve => { releaseSave = resolve; });
+    const finishStatuses: string[] = [];
+    const originalSave = store.save.bind(store); const originalFinish = store.finishRun.bind(store);
+    const saveSpy = vi.spyOn(store, 'save').mockImplementation(async (storeSession, next, expected) => {
+      markSaveEntered(); await saveGate; return originalSave(storeSession, next, expected);
+    });
+    const finishSpy = vi.spyOn(store, 'finishRun').mockImplementation(async (storeSession, runId, projectId, status, usage) => {
+      finishStatuses.push(status); return originalFinish(storeSession, runId, projectId, status, usage);
+    });
+    const abort = new AbortController(); const runId = crypto.randomUUID();
+    try {
+      const pending = app.fetch(new Request(`http://localhost/api/projects/${project.id}/messages`, {
+        method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ text: 'Preparar o primeiro teste.', runId }), signal: abort.signal,
+      }));
+      await saveEntered;
+      abort.abort(); releaseSave();
+      const response = await pending;
+
+      expect(response.status).toBe(499);
+      expect(model).not.toHaveBeenCalled();
+      expect(finishStatuses).toEqual(['cancelled']);
+      const resumeRunId = crypto.randomUUID();
+      expect(await store.reserveRun(session, project.id, resumeRunId)).toBe(true);
+      await store.finishRun(session, resumeRunId, project.id, 'complete');
+    } finally {
+      releaseSave(); saveSpy.mockRestore(); finishSpy.mockRestore();
+    }
+  });
+
   it('keeps an idle SSE connection alive with comments and clears its heartbeat after completion', async () => {
     vi.useFakeTimers();
     const { token, project } = await setup();

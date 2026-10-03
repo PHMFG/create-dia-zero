@@ -65,6 +65,7 @@ export function validateConnection(cards: CanvasCard[], source: string | null | 
   const byId = new Map(cards.map(card => [card.id, card]));
   if (!byId.has(source) || !byId.has(target)) return { valid: false, error: 'Um dos cartões dessa conexão não está mais no plano.' };
   if (byId.get(target)!.dependsOn.includes(source)) return { valid: false, error: 'Esses cartões já estão conectados.' };
+  if (byId.get(target)!.dependsOn.length >= 50) return { valid: false, error: 'Este cartão já tem o limite de 50 conexões. Remova uma antes de adicionar outra.' };
   // Source following dependencies to target would form a cycle if target depends on source.
   const pending = [source]; const visited = new Set<string>();
   while (pending.length) {

@@ -194,6 +194,38 @@ describe('create project domain', () => {
     expect(withSource.sources[0].verified).toBe(false);
   });
 
+  it('surfaces imported messages whose card was deleted and drops only invalid source references', () => {
+    const project = projectWithAction('Um clube de jardinagem');
+    const action = project.cards.find(card => card.kind === 'action')!;
+    const source = { id: 'saved-source', title: 'Referência', url: 'https://example.com', consultedAt: new Date().toISOString(), excerpt: 'Trecho', verified: true };
+    project.sources = [source];
+    project.messages = [
+      { id: 'orphan-message', role: 'assistant', text: 'Histórico de um cartão removido', createdAt: new Date().toISOString(), cardId: 'deleted-card', sourceIds: ['missing-source'] },
+      { id: 'card-message', role: 'assistant', text: 'Histórico do cartão atual', createdAt: new Date().toISOString(), cardId: action.id, sourceIds: [source.id] },
+    ];
+
+    const imported = importProject(project);
+    expect(imported.messages[0]).toMatchObject({ text: 'Histórico de um cartão removido', sourceIds: [] });
+    expect(imported.messages[0].cardId).toBeUndefined();
+    expect(imported.messages[1]).toMatchObject({ cardId: action.id, sourceIds: [source.id] });
+  });
+
+  it('keeps a removed card conversation visible in the main history', () => {
+    const project = projectWithAction('Um clube de jardinagem');
+    const action = project.cards.find(card => card.kind === 'action')!;
+    project.messages = [{ id: 'action-history', role: 'assistant', text: 'Histórico preservado', createdAt: new Date().toISOString(), cardId: action.id }];
+
+    const edited = applyHumanEdit(project, project.cards.filter(card => card.id !== action.id));
+    expect(edited.cards.some(card => card.id === action.id)).toBe(false);
+    expect(edited.messages).toEqual([{ ...project.messages[0], cardId: undefined }]);
+  });
+
+  it('rejects duplicate message IDs in imported history', () => {
+    const project = createProject('Uma escola de teatro');
+    const message = { id: 'same-message', role: 'assistant' as const, text: 'Resposta preservada', createdAt: new Date().toISOString() };
+    expect(() => importProject({ ...project, messages: [message, { ...message, text: 'Outra resposta' }] })).toThrow('duplicados');
+  });
+
   it('drops unrelated keys and unsupported references from model output', () => {
     const project = createProject('Uma escola de culinária');
     const note = makeCard('note', 'Notas', 'Observações', [{ id: 'b1', type: 'sources', sourceIds: ['invented'] }]);

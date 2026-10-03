@@ -89,6 +89,32 @@ try {
     assert.ok(researchEvents.some(e=>e.type==='project'&&e.project.sources.length>0));checks.push('real internet research publishes links, provider images and the supplied project region');
     const saved=await json(`/projects/${p.id}`);assert.equal(saved.version,final.version);
   }
+  // Exercise the real HTTP disconnect, not only a mocked AbortSignal. A cancelled
+  // response must release its lease so the next queued question can start.
+  const cancelController = new AbortController();
+  const interrupted = await fetch(`${base}/api/projects/${p.id}/messages`, {
+    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: 'Teste técnico de interrupção: prepare dez perguntas abertas para uma entrevista. Não pesquise nem altere cartões.', runId: crypto.randomUUID() }),
+    signal: cancelController.signal,
+  });
+  assert.ok(interrupted.ok, 'A execução que será interrompida deve iniciar.');
+  const interruptedReader = interrupted.body!.getReader();
+  assert.equal((await interruptedReader.read()).done, false, 'O SSE precisa aceitar a pergunta antes do cancelamento.');
+  cancelController.abort(); await interruptedReader.cancel().catch(() => {});
+  const resumeStarted = Date.now(), resumeRunId = crypto.randomUUID();
+  let resumed: Response;
+  for (;;) {
+    resumed = await request(`/projects/${p.id}/messages`, 'POST', { text: 'Em uma frase, qual é a diferença entre hipótese e evidência? Não pesquise nem altere cartões.', runId: resumeRunId });
+    if (resumed.status !== 409 || Date.now() - resumeStarted >= 10000) break;
+    await resumed.body?.cancel();
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+  assert.ok(resumed.ok, await (resumed.ok ? Promise.resolve('') : resumed.text()));
+  const resumedEvents = await consume(resumed, p.id);
+  const resumedDone = resumedEvents.find(event => event.type === 'complete');
+  assert.ok(resumedDone, 'A pergunta seguinte precisa concluir sem ficar presa à execução interrompida.');
+  assert.equal(resumedDone.mode, 'live'); final = resumedDone.project;
+  checks.push('real HTTP cancellation releases the run and the next question completes');
   const imported = await json('/projects/import', 'POST', { format: 'create-project', version: 1, project: final }); projects.push(imported.id); assert.notEqual(imported.id, p.id); checks.push('JSON import restores an independent project');
   await mkdir('artifacts', { recursive: true });
   await writeFile('artifacts/research-smoke-project.json', JSON.stringify({format:'create-project',version:1,project:final},null,2));

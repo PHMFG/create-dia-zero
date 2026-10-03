@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import type { Project, TurnResult } from '../shared/types';
-import { createProject } from '../shared/domain';
+import { createProject, makeCard } from '../shared/domain';
 
 vi.mock('../server/ai', () => ({ generateTurn: vi.fn(async (): Promise<TurnResult> => ({ reply: 'Resposta de teste, sem provedores externos.', operations: [], sources: [], mode: 'fallback' })) }));
 
@@ -29,6 +29,50 @@ describe('guest API and local store', () => {
     vi.stubEnv('VERCEL', '1');
     const response = await request('/api/projects', owner());
     expect(response.status).toBe(503);
+  });
+
+  it('enforces the API body cap when Content-Length is absent', async () => {
+    const response = await app.request('/api/projects', {
+      method: 'POST', headers: authorization(owner()), body: JSON.stringify({ idea: 'x'.repeat(1_500_001) }),
+    });
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({ error: 'O projeto é muito grande para esta operação.' });
+  });
+
+  it('accepts a schema-valid import larger than 1.5 MB up to the 3 MB import limit', async () => {
+    const token = owner(); const project = createProject('Projeto importado grande');
+    const largeCards = Array.from({ length: 2 }, (_, cardIndex) => makeCard('note', `Documento ${cardIndex + 1}`, 'Texto grande válido.',
+      Array.from({ length: 50 }, () => ({ id: crypto.randomUUID(), type: 'paragraph' as const, text: 'x'.repeat(15_500) }))));
+    const body = { ...project, cards: [...project.cards, ...largeCards] };
+    expect(JSON.stringify(body).length).toBeGreaterThan(1_500_000);
+    expect(JSON.stringify(body).length).toBeLessThanOrEqual(3_000_000);
+
+    const response = await request('/api/projects/import', token, 'POST', body);
+    expect(response.status).toBe(201);
+    const imported = await response.json() as Project;
+    expect(imported.cards).toHaveLength(3);
+    expect(imported.cards[1].blocks).toHaveLength(50);
+  });
+
+  it('accepts a schema-valid canvas save larger than 1.5 MB up to the 3 MB limit', async () => {
+    const token = owner();
+    const project = await (await request('/api/projects', token, 'POST', { idea: 'Projeto para um canvas grande' })).json() as Project;
+    const largeCards = Array.from({ length: 2 }, (_, cardIndex) => makeCard('note', `Documento ${cardIndex + 1}`, 'Texto grande válido.',
+      Array.from({ length: 50 }, () => ({ id: crypto.randomUUID(), type: 'paragraph' as const, text: 'x'.repeat(15_500) }))));
+    const body = { ...project, cards: [...project.cards, ...largeCards] };
+    expect(JSON.stringify(body).length).toBeGreaterThan(1_500_000);
+    expect(JSON.stringify(body).length).toBeLessThanOrEqual(3_000_000);
+
+    const response = await request(`/api/projects/${project.id}/canvas`, token, 'PATCH', body);
+    expect(response.status).toBe(200);
+    expect((await response.json() as Project).cards).toHaveLength(3);
+  });
+
+  it('rejects an import over 3 MB with an explicit import-size message', async () => {
+    const token = owner(); const raw = `{"payload":"${'x'.repeat(3_000_001)}"}`;
+    const response = await app.request('/api/projects/import', { method: 'POST', headers: authorization(token), body: raw });
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({ error: 'O arquivo do projeto excede o limite de 3 MB.' });
   });
 
   it('isolates visitors across read, write, delete, evidence and model turns', async () => {
@@ -102,6 +146,7 @@ describe('guest API and local store', () => {
     const sessionWithInsertError = (insertError: { code: string; message: string } | null): store.StoreSession => {
       const query = {
         select: () => query,
+        eq: () => query,
         order: () => query,
         limit: async () => ({ data: [], error: null }),
         insert: async () => ({ error: insertError }),
@@ -114,6 +159,39 @@ describe('guest API and local store', () => {
     await expect(store.insert(sessionWithInsertError({ code: 'P0001', message: 'other database rule' }), createProject('Regra do banco')))
       .rejects.toMatchObject({ status: 503 });
     await expect(store.insert(sessionWithInsertError({ code: '08006', message: 'connection failure' }), createProject('Banco indisponível')))
+      .rejects.toMatchObject({ status: 503 });
+  });
+
+  it('scopes every Supabase project query to its authenticated owner', async () => {
+    const project = createProject('Projeto privado'); const filters: Array<[string, unknown]> = [];
+    const query: Record<string, (...args: any[]) => any> = {};
+    query.select = () => query; query.order = () => query; query.limit = async () => ({ data: [], error: null });
+    query.eq = (column: string, value: unknown) => { filters.push([column, value]); return query; };
+    query.maybeSingle = async () => ({ data: { document: project }, error: null });
+    query.update = () => query; query.delete = () => query;
+    query.then = (resolve: (value: unknown) => unknown, reject: (reason: unknown) => unknown) => Promise.resolve({ data: [{ id: project.id }], error: null }).then(resolve, reject);
+    const s: store.StoreSession = { owner: 'authenticated-user-id', db: { from: () => query } as unknown as store.StoreSession['db'] };
+
+    await store.list(s); await store.get(s, project.id); await store.save(s, { ...project, version: 1 }, 0); await store.remove(s, project.id);
+
+    expect(filters.filter(([column]) => column === 'owner_id')).toHaveLength(5);
+    expect(filters.filter(([column]) => column === 'owner_id').every(([, value]) => value === s.owner)).toBe(true);
+  });
+
+  it('surfaces unexpected quota RPC failures as storage outages', async () => {
+    const sessionWithRpc = (rpcResult: { data: unknown; error: { code: string; message: string } | null }): store.StoreSession => ({
+      owner: owner(), db: { rpc: async () => rpcResult } as unknown as store.StoreSession['db'],
+    });
+
+    await expect(store.reserveRun(sessionWithRpc({ data: null, error: { code: '08006', message: 'connection failure' } }), 'project-id', 'run-id'))
+      .rejects.toMatchObject({ status: 503 });
+    await expect(store.reserveRun(sessionWithRpc({ data: null, error: { code: 'P0001', message: 'daily limit reached' } }), 'project-id', 'run-id'))
+      .rejects.toMatchObject({ status: 429 });
+    await expect(store.reserveRun(sessionWithRpc({ data: null, error: { code: '55000', message: 'active run already exists' } }), 'project-id', 'run-id'))
+      .rejects.toMatchObject({ status: 409 });
+    await expect(store.reserveResearch(sessionWithRpc({ data: null, error: { code: '08006', message: 'connection failure' } }), 'run-id'))
+      .rejects.toMatchObject({ status: 503 });
+    await expect(store.reserveResearch(sessionWithRpc({ data: null, error: { code: 'P0001', message: 'research quota reached' } }), 'run-id'))
       .rejects.toMatchObject({ status: 503 });
   });
 

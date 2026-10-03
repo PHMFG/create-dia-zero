@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createProject, createDemoProject } from '../../shared/domain';
+import { applyHumanEdit, createProject, createDemoProject, makeCard, organizeCards } from '../../shared/domain';
 import { hasLocalContent, mergeIncoming } from './projectMerge';
 
 describe('late response merges', () => {
@@ -71,6 +71,19 @@ describe('late response merges', () => {
     expect(items.map(item=>item.id)).toEqual(expect.arrayContaining(['local-new-item','remote-new-item']));
     expect(items.filter(item=>item.id==='remote-new-item')).toHaveLength(1);
     expect(merged.blocks.some(block=>block.id==='remote-new-block')).toBe(true);
+  });
+  it('keeps a completed simulated checkbox when a human edits only its text during a response',()=>{
+    const project=createProject('Uma oficina comunitária');
+    const action=makeCard('action','Registrar uma experiência','Ouvir alguém do público.',[
+      {id:'human-checklist',type:'checklist',items:[{id:'simulated-step',text:'Passo de exemplo já concluído',checked:true}]},
+    ],'now');
+    const base={...project,cards:organizeCards([...project.cards,action])};
+    const local=applyHumanEdit(base,base.cards.map(card=>card.id!==action.id?card:{...card,blocks:card.blocks.map(block=>block.id!=='human-checklist'?block:{...block,items:block.items!.map(item=>({...item,text:'Minha instrução revisada'}))})}));
+    const incoming=structuredClone(base);
+    incoming.cards.find(card=>card.id===action.id)!.blocks[0].items![0].checked=false;
+
+    const item=mergeIncoming(base,local,incoming).cards.find(card=>card.id===action.id)!.blocks[0].items![0];
+    expect(item).toMatchObject({text:'Minha instrução revisada',checked:true,humanEdited:true});
   });
   it('protects a locally deleted block and merges independent source references',()=>{
     const base=createDemoProject(),local=structuredClone(base),remote=structuredClone(base);

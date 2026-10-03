@@ -79,7 +79,10 @@ function normalizeCards(cards: CanvasCard[], preferredNow?: string): CanvasCard[
 
 function changed(project: Project, label: string, cards = project.cards, context = project.context): Project {
   const now = timestamp();
-  return { ...project, version: project.version + 1, updatedAt: now, cards: normalizeCards(cards), context,
+  const normalizedCards = normalizeCards(cards);
+  const cardIds = new Set(normalizedCards.map(card => card.id));
+  return { ...project, version: project.version + 1, updatedAt: now, cards: normalizedCards,
+    messages: project.messages.map(message => message.cardId && !cardIds.has(message.cardId) ? { ...message, cardId: undefined } : message), context,
     revisions: [...project.revisions, { id: uid('revision'), at: now, label, cards: copy(project.cards), context: copy(project.context) }].slice(-50) };
 }
 
@@ -303,7 +306,7 @@ export function applyTurn(project: Project, rawResult: TurnResult, baselineConte
     next.cards = next.cards.map(card => existingIds.has(card.id) || contextDrifted ? markReview([card])[0] : card);
   }
   next.sources = sources;
-  next.messages = [...project.messages, { id: uid('message'), role: 'assistant', text: cleanString(result.reply), createdAt: timestamp(), sourceIds: result.sources.map(source => source.id) }];
+  next.messages = [...next.messages, { id: uid('message'), role: 'assistant', text: cleanString(result.reply), createdAt: timestamp(), sourceIds: result.sources.map(source => source.id) }];
   if (applied.conflicts.length) next.proposals = [...next.proposals, proposal({ title: 'Sugestões para seu plano', reason: 'Seu conteúdo foi preservado. Revise estas mudanças antes de aplicar.', operations: applied.conflicts.map(operation => ({ ...operation, expectedRevision: next.cards.find(card => card.id === operation.cardId)?.revision })) })];
   if (strategicOperations.length) next.proposals = [...next.proposals, proposal({
     title: 'Revisar a ação prioritária', reason: 'Revise esta mudança de prioridade. A ação atual continua no plano até você aceitar a revisão.',
@@ -389,7 +392,7 @@ export function importProject(raw: unknown): Project {
   }
   if (parsed && typeof parsed === 'object' && 'project' in parsed) parsed = (parsed as { project: unknown }).project;
   const project = parseProject(parsed);
-  uniqueIds(project.cards, 'cartões'); uniqueIds(project.sources, 'fontes'); uniqueIds(project.evidence, 'evidências'); uniqueIds(project.proposals, 'propostas');
+  uniqueIds(project.cards, 'cartões'); uniqueIds(project.sources, 'fontes'); uniqueIds(project.evidence, 'evidências'); uniqueIds(project.proposals, 'propostas'); uniqueIds(project.messages, 'mensagens');
   for (const card of project.cards) { uniqueIds(card.blocks, 'blocos'); uniqueIds(card.blocks.flatMap(block => block.items ?? []), 'itens'); }
   const now = timestamp();
   const validIds = new Set(project.sources.map(source => source.id));
@@ -398,6 +401,12 @@ export function importProject(raw: unknown): Project {
   const imported = { ...project, id: uid('project'), title: `${project.title.slice(0, 185)} · cópia`, createdAt: now, updatedAt: now, version: 0, cards,
     sources: project.sources.map(source => ({ ...source, verified: false })),
     evidence: project.evidence.map(item => ({ ...item, cardId: item.cardId && cardIds.has(item.cardId) ? item.cardId : undefined })),
+    // Orphaned card conversations would be hidden from both the main chat and a card drawer.
+    // Keep their messages visible in the main conversation, and discard only dead source links.
+    messages: project.messages.map(message => ({ ...message,
+      cardId: message.cardId && cardIds.has(message.cardId) ? message.cardId : undefined,
+      sourceIds: message.sourceIds?.filter(id => validIds.has(id)),
+    })),
     // External proposals may carry destructive or obsolete operations; keep historical decisions only.
     proposals: project.proposals.map(item => ({ ...item, status: item.status === 'pending' ? 'rejected' as const : item.status })), revisions: [] };
   return copy(imported);

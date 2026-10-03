@@ -7,6 +7,7 @@ import { exportProject, organizeCards } from '../../shared/domain';
 import { validateConnection } from '../../shared/canvasConnections';
 import { api, ApiError } from '../lib/api';
 import { hasLocalContent, mergeIncoming } from '../lib/projectMerge';
+import { availableCardPosition } from '../lib/cardLayout';
 import Canvas from './Canvas';
 import CardChat from './CardChat';
 import AgentActivity from './AgentActivity';
@@ -73,7 +74,7 @@ export default function Workspace({initial,autoStart,projects,health,onHome,onOp
   const changeCard=useCallback((card:CanvasCard)=>{const before=projectRef.current.cards.find(c=>c.id===card.id);for(const source of card.dependsOn.filter(id=>!before?.dependsOn.includes(id))){const result=validateConnection(projectRef.current.cards,source,card.id);if(!result.valid){notice(result.error??'Esta conexão não pode ser criada.');return;}}edit(p=>({...p,updatedAt:new Date().toISOString(),cards:p.cards.map(c=>c.id===card.id?card:c)}));},[edit,notice]);
   const openCard=useCallback((id:string)=>{setSelected(id);setChangedCardIds(old=>old.filter(changed=>changed!==id));},[]);
   async function sendChat(text=chatText,evidenceRegistered=false,cardId?:string,onAccepted?:()=>void,queuedItem?:QueuedPrompt) {
-    if(!text.trim())return;
+    if(!mounted.current||!text.trim())return;
     const fromComposer=!queuedItem&&!cardId&&text===chatText;
     if(!queuedItem&&(chatRunning.current||queueRef.current.length)){
       if(queueRef.current.length>=10){setError('A fila já tem 10 perguntas. Remova uma pergunta pendente antes de acrescentar outra.');return;}
@@ -87,9 +88,13 @@ export default function Workspace({initial,autoStart,projects,health,onHome,onOp
     chatRunning.current=true;setActiveCard(cardId||null);setActivityCard(cardId||null);setRunActivities([]);setChangedCardIds([]);setGenerating(true);setStreamText('');setActivity('Organizando o contexto do seu projeto');setError('');autoScroll.current=true;
     try {
       if(cardId&&!projectRef.current.cards.some(card=>card.id===cardId))throw new Error('O cartão desta pergunta foi removido. Retire a pergunta da fila e envie-a novamente em outro cartão ou na conversa.');
-      await flush(); const current=projectRef.current;let receivedBase=current;
-      working({...current,messages:[...current.messages,{id:`pending-${crypto.randomUUID()}`,role:'user',text:text.trim(),createdAt:new Date().toISOString(),cardId}]});
+      // Create the controller before flushing autosaves so the visible cancel button
+      // also cancels a request that is still waiting for the save to finish.
       const controller=new AbortController();abort.current=controller;
+      await flush();
+      if(controller.signal.aborted)throw new DOMException('Geração interrompida.','AbortError');
+      const current=projectRef.current;let receivedBase=current;
+      working({...current,messages:[...current.messages,{id:`pending-${crypto.randomUUID()}`,role:'user',text:text.trim(),createdAt:new Date().toISOString(),cardId}]});
       await api.chat(current.id,text.trim(),(event:StreamEvent)=>{
         if(!acknowledged){acknowledged=true;if(fromComposer)setChatText(value=>value===text?'':value);onAccepted?.();}
         if(event.type==='status')setActivity(event.text);
@@ -121,7 +126,7 @@ export default function Workspace({initial,autoStart,projects,health,onHome,onOp
   async function evidence(input:Parameters<typeof api.evidence>[1]) {await flush();const saved=await api.evidence(project.id,input);syncedRef.current=saved;working(saved);setMobileTab('chat');void sendChat('Analise a experiência que acabei de registrar. Relacione-a às hipóteses e à ação atual; proponha uma revisão do plano se as evidências justificarem, sem aplicar decisões estratégicas automaticamente.',true);}
   async function resolve(id:string,accept:boolean){await flush();const saved=await api.resolve(project.id,id,accept);syncedRef.current=saved;working(saved);}
   function exportFile(){try{const blob=new Blob([exportProject(projectRef.current)],{type:'application/json'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`create-${project.title.replace(/[^a-zA-Z0-9À-ÿ]/g,'-').toLowerCase()}.json`;link.click();URL.revokeObjectURL(link.href);setMenu(false);}catch{setError('Complete os títulos dos cartões para exportar uma cópia válida.');setMenu(false);}}
-  function addNote(){const id=crypto.randomUUID();const last=projectRef.current.cards.length;edit((p)=>({...p,updatedAt:new Date().toISOString(),cards:[...p.cards,{id,kind:'note',title:'Uma nova anotação',summary:'Um espaço para suas ideias e descobertas.',lane:'later',blocks:[{id:crypto.randomUUID(),type:'paragraph',text:'',humanEdited:true}],position:{x:(last%3)*350,y:Math.floor(last/3)*420},revision:1,origin:'user',humanEdited:true,dependsOn:[]}]}));setSelected(id);}
+  function addNote(){const current=projectRef.current;if(current.cards.length>=100){setError('Este projeto já tem o limite de 100 cartões. Remova um cartão antes de adicionar outra anotação.');return;}const id=crypto.randomUUID();const note:CanvasCard={id,kind:'note',title:'Uma nova anotação',summary:'Um espaço para suas ideias e descobertas.',lane:'later',blocks:[{id:crypto.randomUUID(),type:'paragraph',text:'',humanEdited:true}],position:{x:0,y:0},revision:1,origin:'user',humanEdited:true,dependsOn:[]};note.position=availableCardPosition(current.cards,note);edit((p)=>({...p,updatedAt:new Date().toISOString(),cards:[...p.cards,note]}));setSelected(id);}
   const mainMessages=project.messages.filter((message)=>!message.cardId);
   const selectedCard=project.cards.find((c)=>c.id===selected), currentAction=project.cards.find((c)=>c.kind==='action'&&c.lane==='now'), pending=project.proposals.filter((p)=>p.status==='pending'), checks=project.cards.flatMap((c)=>c.blocks.filter((b)=>b.type==='checklist').flatMap((b)=>b.items||[])), checked=checks.filter((i)=>i.checked).length;
   return <div className="workspace">

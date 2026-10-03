@@ -16,6 +16,14 @@ describe('canvas connection graph', () => {
     expect(canConnect([a, b], a.id, undefined)).toBe(false);
   });
 
+  it('allows the fiftieth dependency but rejects a fifty-first before it can fail project validation', () => {
+    const prerequisites = Array.from({ length: 51 }, (_, index) => makeCard('note', `Pré-requisito ${index}`, '', []));
+    const target = makeCard('action', 'Ação', '', [], 'next', prerequisites.slice(0, 49).map(card => card.id));
+    expect(validateConnection([...prerequisites, target], prerequisites[49].id, target.id)).toEqual({ valid: true });
+    target.dependsOn.push(prerequisites[49].id);
+    expect(validateConnection([...prerequisites, target], prerequisites[50].id, target.id)).toMatchObject({ valid: false, error: expect.stringContaining('limite de 50') });
+  });
+
   it('rejects a cycle across several cards without preventing a valid branch', () => {
     const a = makeCard('context', 'A', '', []);
     const b = makeCard('hypothesis', 'B', '', [], 'next', [a.id]);

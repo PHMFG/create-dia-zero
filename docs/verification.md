@@ -1,4 +1,4 @@
-# Verificação da entrega · 3 de outubro de 2026
+# Histórico de verificações · 3 de outubro de 2026
 
 Aplicativo público: https://create-dia-zero.vercel.app
 
@@ -45,3 +45,21 @@ O servidor local deixou de reiniciar automaticamente durante alterações de bac
 ## Escopo da avaliação
 
 Os 30 cenários de `tests/ai-evaluation.json` continuam sendo um roteiro, não 30 execuções reais do modelo. Ajustes secundários foram adiados a pedido do usuário; a publicação priorizou falhas emergenciais e a fila de perguntas.
+
+## Novo exemplo e auditoria após a primeira publicação
+
+O exemplo foi ampliado e publicado primeiro em `dpl_FvFZQb659m6kNJuyr4fLUGeLJkkS`, READY. A verificação real `scripts/smoke-demo.ts` confirmou página pública HTTP 200, dez cartões nos sete tipos, onze conexões válidas, uma única ação atual, uma evidência demonstrativa e uma referência manual não verificada. A cópia completa estava persistida antes da resposta da API. Relatos e valores são fictícios; a região não usa coordenadas inventadas.
+
+Depois dessa publicação, três novos subagentes Luna auditaram fila/interface, API/streaming e domínio/preservação de dados. Correções verificadas:
+
+- Cancelar durante o autosave impede iniciar a inferência quando o salvamento termina; callbacks de componentes desmontados também não iniciam novas conversas.
+- Cancelar durante a reserva ou o salvamento inicial da API encerra a execução como interrompida, sem iniciar o modelo. O sinal HTTP é observado antes do SSE e o encerramento é único, evitando deixar a fila presa à execução anterior.
+- Anotações novas são posicionadas em espaço livre sem deslocar cartões existentes, com limite visível de cem cartões.
+- Itens de checklist editados pelo usuário conservam o estado concluído mesmo quando somente seu texto mudou desde a origem da resposta.
+- Remover um cartão transfere sua conversa preservada para o chat principal. Importar repara esses vínculos, remove referências inválidas de fontes nas mensagens e rejeita IDs de mensagens duplicados.
+- Conexões têm limite explícito de cinquenta; a interface também limita sessenta blocos por cartão e oitenta itens por lista, evitando quebrar o autosave.
+- Requisições sem Content-Length respeitam o limite real do corpo. Importação e canvas aceitam até 3 MB, compatíveis com a interface; demais operações aceitam até 1,5 MB.
+- Falhas inesperadas do banco retornam indisponibilidade, sem serem confundidas com limite de uso ou outra execução ativa. As consultas de projetos filtram o proprietário autenticado, além do RLS.
+- A abertura de projetos ignora respostas antigas de outra seleção e conserva o parâmetro do projeto durante a retomada inicial.
+
+A suíte completa passou em **170 testes de onze arquivos**, com TypeScript e build de produção aprovados. Em uma sessão local de QA separada, foram conferidos novo exemplo, edição pelo lápis no modo de leitura, persistência de texto/conexão após reload e onze cartões sem sobreposição medida no DOM. Perguntas normais foram respondidas na ordem da fila; interrupção, recuperação pausada após reload, remoção de uma pendência e retomada concluída foram verificadas no navegador. A execução interrompida constou como `cancelled` no banco em 2,6 segundos desde a reserva; a próxima pergunta iniciou e concluiu sem esperar a expiração de 120 segundos. Projetos preexistentes conservam suas edições e não são substituídos pelo novo exemplo.

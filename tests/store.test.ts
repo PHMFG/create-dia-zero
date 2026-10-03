@@ -83,6 +83,7 @@ describe('guest API and local store', () => {
     expect(await (await request('/api/projects', b)).json()).toEqual([]);
     expect((await request(`/api/projects/${project.id}`, b)).status).toBe(404);
     expect((await request(`/api/projects/${project.id}`, b, 'DELETE')).status).toBe(404);
+    expect((await request(`/api/projects/${project.id}/runs/${crypto.randomUUID()}/cancel`, b, 'POST')).status).toBe(404);
     expect((await request(`/api/projects/${project.id}/canvas`, b, 'PATCH', project)).status).toBe(404);
     expect((await request(`/api/projects/${project.id}/evidence`, b, 'POST', { text: 'Alguém contou uma experiência', type: 'interview' })).status).toBe(404);
     expect((await request(`/api/projects/${project.id}/messages`, b, 'POST', { text: 'Me ajude', runId: globalThis.crypto.randomUUID() })).status).toBe(404);
@@ -225,6 +226,25 @@ describe('guest API and local store', () => {
     expect(await store.reserveRun(s, project.id, 'idempotent-run-id')).toBe(false);
     await store.finishRun(s, 'idempotent-run-id', project.id, 'complete');
     expect(await store.reserveRun(s, project.id, 'idempotent-run-id')).toBe(false);
+  });
+
+  it('keeps cancellation requests owner-scoped and does not release an active run lease', async () => {
+    const s = { owner: owner() }; const other = { owner: owner() }; const project = createProject('Projeto cancelável');
+    await store.insert(s, project);
+    const beforeReserve = crypto.randomUUID();
+    expect(await store.requestRunCancel(s, project.id, beforeReserve)).toBe(true);
+    expect(await store.reserveRun(s, project.id, beforeReserve)).toBe(false);
+    expect(await store.requestRunCancel(other, project.id, crypto.randomUUID())).toBe(false);
+
+    const active = crypto.randomUUID();
+    expect(await store.reserveRun(s, project.id, active)).toBe(true);
+    expect(await store.requestRunCancel(s, project.id, active)).toBe(true);
+    expect(await store.isRunCancelRequested(s, project.id, active)).toBe(true);
+    await expect(store.reserveRun(s, project.id, crypto.randomUUID())).rejects.toMatchObject({ status: 409, code: 'RUN_BUSY' });
+    await store.finishRun(s, active, project.id, 'cancelled');
+    const resumed = crypto.randomUUID();
+    expect(await store.reserveRun(s, project.id, resumed)).toBe(true);
+    await store.finishRun(s, resumed, project.id, 'complete');
   });
 
   it('expires abandoned locks after 120 seconds while keeping run IDs reserved', async () => {

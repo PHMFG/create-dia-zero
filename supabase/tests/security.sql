@@ -1,4 +1,4 @@
--- Run after schema.sql via an owner connection. No external requests are made.
+-- Run after schema.sql and cancellation.sql via an owner connection. No external requests are made.
 -- All fixtures and reservations roll back. Any failed assertion raises an error.
 begin;
 insert into auth.users(id, aud, role, is_anonymous, created_at, updated_at) values
@@ -12,7 +12,7 @@ insert into public.create_projects(id, owner_id, document, version) values
  ('test_security_a1', 'cf8424c1-1001-4000-8000-000000000001', '{"id":"test_security_a1","version":0}', 0),
  ('test_security_a2', 'cf8424c1-1001-4000-8000-000000000001', '{"id":"test_security_a2","version":0}', 0),
  ('test_security_a3', 'cf8424c1-1001-4000-8000-000000000001', '{"id":"test_security_a3","version":0}', 0);
-do $$ begin
+do $$ declare i integer; begin
   if (select count(*) from public.create_projects) <> 3 then raise exception 'RLS own SELECT failed'; end if;
   begin
     insert into public.create_projects(id,owner_id,document,version) values ('test_security_a4','cf8424c1-1001-4000-8000-000000000001','{"id":"test_security_a4","version":0}',0);
@@ -22,12 +22,35 @@ do $$ begin
   end;
   if not public.create_reserve_run('test_security_a1','test_run_a_first') then raise exception 'first reservation failed'; end if;
   if public.create_reserve_run('test_security_a1','test_run_a_first') then raise exception 'idempotency failed'; end if;
+  if public.create_is_run_cancel_requested('test_security_a1','test_run_a_first') then raise exception 'new run unexpectedly cancelled'; end if;
   begin
     perform public.create_reserve_run('test_security_a1','test_run_a_second');
     raise exception 'active run lock failed';
   exception when object_not_in_prerequisite_state then null; end;
   if not public.create_reserve_research('test_run_a_first') then raise exception 'research reservation failed'; end if;
   if public.create_reserve_research('test_run_a_first') then raise exception 'research one-per-run failed'; end if;
+  -- A cancellation can beat the reserve RPC. Its tombstone blocks that run ID
+  -- without creating a run row, taking a lease, or consuming message quota.
+  if not public.create_request_run_cancel('test_security_a2','test_cancel_before_reserve') then raise exception 'pre-reservation cancellation was not recorded'; end if;
+  if public.create_is_run_cancel_requested('test_security_a2','test_cancel_before_reserve') then raise exception 'unreserved cancellation reported as a running handler'; end if;
+  if public.create_reserve_run('test_security_a2','test_cancel_before_reserve') then raise exception 'cancelled request was reserved'; end if;
+  for i in 1..29 loop
+    if not public.create_request_run_cancel('test_security_a2','test_cancel_pre_' || i::text) then raise exception 'pre-reservation cancel quota denied early'; end if;
+  end loop;
+  begin
+    perform public.create_request_run_cancel('test_security_a2','test_cancel_pre_over');
+    raise exception 'pre-reservation cancellation quota failed';
+  exception when raise_exception then
+    if sqlerrm <> 'user run cancellation limit reached' then raise; end if;
+  end;
+  -- Already-running work remains cancellable after the tombstone abuse cap.
+  if not public.create_request_run_cancel('test_security_a1','test_run_a_first') then raise exception 'active run cancellation was not recorded'; end if;
+  if not public.create_is_run_cancel_requested('test_security_a1','test_run_a_first') then raise exception 'active cancellation marker not readable'; end if;
+  if not public.create_request_run_cancel('test_security_a1','test_run_a_first') then raise exception 'repeated cancellation was not idempotent'; end if;
+  begin
+    perform public.create_reserve_run('test_security_a1','test_run_a_second');
+    raise exception 'cancellation request released active lock';
+  exception when object_not_in_prerequisite_state then null; end;
   -- A mismatched run must not release the actual lock.
   if public.create_finish_run('test_security_a1','test_missing_run','complete','{}') then raise exception 'wrong run released lock'; end if;
   begin
@@ -66,13 +89,16 @@ do $$ begin
     perform public.create_finish_run('test_security_a1','test_run_a_first','complete','{}');
     raise exception 'cross-owner RPC finish succeeded';
   exception when insufficient_privilege then null; end;
+  if public.create_request_run_cancel('test_security_a1','test_run_a_first') then raise exception 'cross-owner cancellation request succeeded'; end if;
+  if public.create_is_run_cancel_requested('test_security_a1','test_run_a_first') then raise exception 'cross-owner cancellation marker leaked'; end if;
   if public.create_reserve_research('test_run_a_first') then raise exception 'cross-owner research succeeded'; end if;
 end $$;
 
 select set_config('request.jwt.claims', '{"sub":"cf8424c1-1001-4000-8000-000000000001","role":"authenticated","is_anonymous":true}', true);
 select set_config('request.jwt.claim.sub', 'cf8424c1-1001-4000-8000-000000000001', true);
 do $$ declare i integer; run_id text; begin
-  if not public.create_finish_run('test_security_a1','test_run_a_first','complete','{"model":"test","inputTokens":0,"outputTokens":0}') then raise exception 'finish did not release lock'; end if;
+  if not public.create_finish_run('test_security_a1','test_run_a_first','cancelled','{"model":"test","inputTokens":0,"outputTokens":0}') then raise exception 'cancelled finish did not release lock'; end if;
+  if public.create_is_run_cancel_requested('test_security_a1','test_run_a_first') then raise exception 'finished run still reported active cancellation'; end if;
   for i in 1..29 loop
     run_id := 'test_quota_run_' || i::text;
     if not public.create_reserve_run('test_security_a1',run_id) then raise exception 'message reservation prematurely denied'; end if;
@@ -99,6 +125,14 @@ do $$ begin
   begin
     perform public.create_reserve_run('test_security_a1','test_anon_run');
     raise exception 'anon can execute reservation';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.create_request_run_cancel('test_security_a1','test_anon_run');
+    raise exception 'anon can request run cancellation';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.create_is_run_cancel_requested('test_security_a1','test_anon_run');
+    raise exception 'anon can inspect run cancellation';
   exception when insufficient_privilege then null; end;
 end $$;
 reset role;

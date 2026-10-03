@@ -24,6 +24,46 @@ beforeEach(() => { vi.stubEnv('SUPABASE_URL', ''); vi.stubEnv('SUPABASE_PUBLISHA
 afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); });
 
 describe('persisted incremental SSE', () => {
+  it('acknowledges cancellation before reserve and prevents that run ID from starting later', async () => {
+    const { token, project } = await setup(); const runId = crypto.randomUUID();
+    const cancel = await app.request(`/api/projects/${project.id}/runs/${runId}/cancel`, { method: 'POST', headers: { authorization: `Bearer ${token}` } });
+    expect(cancel.status).toBe(202);
+    expect(await cancel.json()).toEqual({ ok: true });
+
+    const attempted = await request(`/api/projects/${project.id}/messages`, token, { text: 'Não deve começar.', runId });
+    expect(attempted.status).toBe(409);
+    expect(await attempted.json()).toMatchObject({ code: 'RUN_ALREADY_PROCESSED' });
+    expect(model).not.toHaveBeenCalled();
+  });
+
+  it('uses the durable cancel endpoint and keeps the lock until the active stream finishes', async () => {
+    const { token, project, session } = await setup();
+    let releaseGeneration!: (result: TurnResult) => void; let markGenerationStarted!: () => void; let activeSignal!: AbortSignal;
+    const generationStarted = new Promise<void>(resolve => { markGenerationStarted = resolve; });
+    model.mockImplementationOnce(async (_project, _text, options = {}) => {
+      activeSignal = options.signal!; markGenerationStarted();
+      return new Promise<TurnResult>(resolve => { releaseGeneration = resolve; });
+    });
+    const runId = crypto.randomUUID();
+    const streamResponse = await request(`/api/projects/${project.id}/messages`, token, { text: 'Preparar o teste.', runId });
+    const reader = streamResponse.body!.getReader();
+    const streamDone = (async () => { for (;;) if ((await reader.read()).done) return; })();
+    await generationStarted;
+
+    const cancel = await app.request(`/api/projects/${project.id}/runs/${runId}/cancel`, { method: 'POST', headers: { authorization: `Bearer ${token}` } });
+    expect(cancel.status).toBe(202);
+    expect(await cancel.json()).toEqual({ ok: true });
+    await vi.waitFor(() => expect(activeSignal.aborted).toBe(true), { timeout: 2000 });
+    await expect(store.reserveRun(session, project.id, crypto.randomUUID())).rejects.toMatchObject({ status: 409, code: 'RUN_BUSY' });
+
+    releaseGeneration(response());
+    await streamDone;
+    expect((await store.get(session, project.id)).messages.map(message => message.role)).toEqual(['user']);
+    const resumeRunId = crypto.randomUUID();
+    expect(await store.reserveRun(session, project.id, resumeRunId)).toBe(true);
+    await store.finishRun(session, resumeRunId, project.id, 'complete');
+  });
+
   it('releases a reserved run when the request aborts while its initial save is pending', async () => {
     const { token, project, session } = await setup();
     let releaseSave!: () => void; let markSaveEntered!: () => void;

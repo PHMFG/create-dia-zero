@@ -20,7 +20,7 @@ app.use('/api/*',async(c,next)=>{
   c.header('Cache-Control','no-store');c.header('X-Content-Type-Options','nosniff');
   await next();
 });
-app.onError((error,c)=>{ const e=error as store.HttpError;return c.json({error:error instanceof z.ZodError?'Os dados enviados não são válidos.':e.status?e.message:'Não foi possível concluir. Tente novamente.'},(e.status??(error instanceof z.ZodError?400:500)) as 400); });
+app.onError((error,c)=>{ const e=error as store.HttpError;return c.json({error:error instanceof z.ZodError?'Os dados enviados não são válidos.':e.status?e.message:'Não foi possível concluir. Tente novamente.',...(e.code?{code:e.code}:{})},(e.status??(error instanceof z.ZodError?400:500)) as 400); });
 app.get('/api/config',c=>c.json({url:process.env.SUPABASE_URL??'',publishableKey:process.env.SUPABASE_PUBLISHABLE_KEY??'',turnstileSiteKey:process.env.TURNSTILE_SITE_KEY??''}));
 app.get('/api/health',c=>c.json({storage:store.configured()?'supabase':'local',ai:!!process.env.OPENCODE_GO_API_KEY,jev:!!process.env.TYPESAFE_API_KEY,research:!!process.env.TAVILY_API_KEY,auth:'guest'}));
 app.get('/api/projects',async c=>c.json(await store.list(await store.session(c.req.raw))));
@@ -29,6 +29,12 @@ app.post('/api/projects/demo',async c=>c.json(await store.insert(await store.ses
 app.post('/api/projects/import',async c=>{const s=await store.session(c.req.raw);return c.json(await store.insert(s,importProject(await c.req.json())),201);});
 app.get('/api/projects/:id',async c=>c.json(await store.get(await store.session(c.req.raw),c.req.param('id'))));
 app.delete('/api/projects/:id',async c=>{await store.remove(await store.session(c.req.raw),c.req.param('id'));return c.json({ok:true});});
+app.post('/api/projects/:id/runs/:runId/cancel',async c=>{
+  const s=await store.session(c.req.raw);const runId=z.string().min(10).max(100).parse(c.req.param('runId'));
+  await store.get(s,c.req.param('id'));
+  await store.requestRunCancel(s,c.req.param('id'),runId);
+  return c.json({ok:true},202);
+});
 app.patch('/api/projects/:id/canvas',async c=>{
   const s=await store.session(c.req.raw);const current=await store.get(s,c.req.param('id'));const input=parseProject(await c.req.json());
   if(input.id!==current.id||input.version!==current.version)throw new store.HttpError(409,'Uma atualização chegou enquanto você editava. Reabra o projeto para continuar.');
@@ -54,13 +60,25 @@ app.post('/api/projects/:id/messages',async c=>{
   };
   let started:boolean;
   try{started=await store.reserveRun(s,current.id,input.runId);}catch(error){detachRequestAbort();throw error;}
-  if(!started){detachRequestAbort();return c.json({error:'Esta mensagem já foi processada. Reabra o projeto para ver a resposta.'},409);}
+  if(!started){detachRequestAbort();return c.json({error:'Esta mensagem já foi processada ou cancelada. Reabra o projeto para continuar.',code:'RUN_ALREADY_PROCESSED'},409);}
   runReserved=true;
-  if(controller.signal.aborted){await finishRunOnce('cancelled');detachRequestAbort();return new Response(null,{status:499});}
+  let cancellationPoll:Promise<void>|undefined;
+  const checkRunCancellation=()=>{
+    if(controller.signal.aborted)return Promise.resolve();
+    if(cancellationPoll)return cancellationPoll;
+    cancellationPoll=store.isRunCancelRequested(s,current.id,input.runId).then(requested=>{if(requested)controller.abort();}).catch(()=>{controller.abort();}).finally(()=>{cancellationPoll=undefined;});
+    return cancellationPoll;
+  };
+  const cancellationPollTimer=setInterval(()=>{void checkRunCancellation();},500);
+  void checkRunCancellation();
+  const stopCancellationPoll=async()=>{clearInterval(cancellationPollTimer);if(cancellationPoll)await cancellationPoll;};
+  await checkRunCancellation();
+  if(controller.signal.aborted){await stopCancellationPoll();await finishRunOnce('cancelled');detachRequestAbort();return new Response(null,{status:499});}
   const messageId=input.runId;
   current={...current,version:current.version+1,updatedAt:new Date().toISOString(),messages:[...current.messages,{id:messageId,role:'user',text:input.text,cardId:input.cardId,createdAt:new Date().toISOString()}]};
-  try{await store.save(s,current,current.version-1);}catch(e){await finishRunOnce('failed');detachRequestAbort();throw e;}
-  if(controller.signal.aborted){await finishRunOnce('cancelled');detachRequestAbort();return new Response(null,{status:499});}
+  try{await store.save(s,current,current.version-1);}catch(e){await stopCancellationPoll();await finishRunOnce('failed');detachRequestAbort();throw e;}
+  await checkRunCancellation();
+  if(controller.signal.aborted){await stopCancellationPoll();await finishRunOnce('cancelled');detachRequestAbort();return new Response(null,{status:499});}
   return streamSSE(c,async stream=>{
     const deadline=setTimeout(()=>controller.abort(),90000);let status='failed';let usage:unknown;
     stream.onAbort(()=>controller.abort());
@@ -79,10 +97,13 @@ app.post('/api/projects/:id/messages',async c=>{
     let deltaQueue:Promise<unknown>=Promise.resolve();
     const persistTurn=async(result:TurnResult,includeMessage:boolean):Promise<Project>=>{
       for(let attempt=0;attempt<3;attempt++){
+        await checkRunCancellation();
         if(controller.signal.aborted)throw new Error('cancelled');
         const latest=await store.get(s,current.id);const candidate=applyTurn(latest,result,{...modelContextBaseline});
         if(includeMessage){if(input.cardId)candidate.messages[candidate.messages.length-1].cardId=input.cardId;}
         else candidate.messages=latest.messages;
+        await checkRunCancellation();
+        if(controller.signal.aborted)throw new Error('cancelled');
         try{const saved=await store.save(s,candidate,latest.version);for(const key of Object.keys(result.contextPatch??{}) as Array<keyof Project['context']>)if(saved.context[key]!==latest.context[key])modelContextBaseline={...modelContextBaseline,[key]:saved.context[key]};liveSnapshot=saved;return saved;}
         catch(error){if(!(error instanceof store.HttpError)||error.status!==409||attempt===2)throw error;}
       }
@@ -113,8 +134,10 @@ app.post('/api/projects/:id/messages',async c=>{
       const pending=deltaQueue.then(commit,commit);deltaQueue=pending.then(()=>undefined,()=>undefined);return pending;
     };
     try{
+      await checkRunCancellation();
       if(controller.signal.aborted){status='cancelled';return;}
       const result=await generateTurn(current,input.text,{signal:controller.signal,evidence:input.evidence,focusCardId:input.cardId,onStatus:(text:string)=>{void emit({type:'status',text}).catch(()=>{});},onActivity,onDelta,onText:async(text:string)=>{await emit({type:'text',text});streamedReply+=text;},reserveResearch:()=>store.reserveResearch(s,input.runId)});
+      await checkRunCancellation();
       if(controller.signal.aborted)throw new Error('cancelled');
       // Models that omit publication still materialize validated final operations
       // before their answer. Preserve atomic action priority changes as one batch.
@@ -130,7 +153,7 @@ app.post('/api/projects/:id/messages',async c=>{
       else if(result.reply.startsWith(streamedReply)&&result.reply.length>streamedReply.length)await emit({type:'text',text:result.reply.slice(streamedReply.length)});
       await emit({type:'complete',project:next,mode:result.mode});status='complete';
     }catch(error){status=controller.signal.aborted?'cancelled':'failed';for(const activity of [...activeActivities.values()])await onActivity({...activity,state:'failed'});await emit({type:'error',error:controller.signal.aborted?'A resposta foi interrompida. Sua mensagem e seu projeto estão salvos.':error instanceof store.HttpError?error.message:'Não foi possível preparar a resposta. Seu projeto está salvo; tente novamente.'});}
-    finally{clearInterval(heartbeat);clearTimeout(deadline);detachRequestAbort();await finishRunOnce(status,usage);}
+    finally{clearInterval(heartbeat);clearTimeout(deadline);await stopCancellationPoll();await deltaQueue;if(controller.signal.aborted&&status==='complete')status='cancelled';detachRequestAbort();await finishRunOnce(status,usage);}
   });
 });
 app.notFound(c=>c.json({error:'Rota não encontrada.'},404));

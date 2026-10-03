@@ -46,11 +46,11 @@ Sem Supabase, o desenvolvimento usa armazenamento em memória por sessão, perdi
 
 - Vercel: projeto `create-dia-zero`, SPA React/Vite e função Node.js `/api/index.mjs`, em São Paulo.
 - Supabase: projeto `create-dia-zero`, região São Paulo, referência `sbswpqwoengvakailgkn`, autenticação anônima habilitada.
-- Banco: `supabase/schema.sql` aplicado pelo conector. Cada projeto pertence a `auth.uid()`; Row Level Security impede acesso entre visitantes.
+- Banco: `supabase/schema.sql` e `supabase/cancellation.sql` aplicados pelo conector. Cada projeto pertence a `auth.uid()`; Row Level Security impede acesso entre visitantes. A interrupção é registrada no banco para funcionar também atrás do proxy do Vercel.
 - As chaves Jev, OpenCode Go e Tavily estão nas variáveis do servidor; Tavily também está configurado no ambiente local. A chave publishable do Supabase é pública por design e protegida pelas políticas; nenhuma chave service role é usada.
 - A pesquisa externa usa `TAVILY_API_KEY`, já configurada nesta implantação. Em outro ambiente, sem essa variável ou com o serviço indisponível, o app informa a limitação e não inventa resultados.
 
-Para reproduzir em outro projeto Supabase, aplique o SQL e habilite **Authentication → Sign In / Providers → Anonymous Sign-Ins**. Não exponha o schema `private` na Data API. Configure URL e publishable key nas variáveis do servidor.
+Para reproduzir em outro projeto Supabase, aplique `supabase/schema.sql` seguido de `supabase/cancellation.sql` e habilite **Authentication → Sign In / Providers → Anonymous Sign-Ins**. Não exponha o schema `private` na Data API. Configure URL e publishable key nas variáveis do servidor.
 
 ## Publicar atualizações
 

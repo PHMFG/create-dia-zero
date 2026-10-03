@@ -1,9 +1,9 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Project } from '../shared/types';
 
-export class HttpError extends Error { constructor(public status: number, message: string) { super(message); } }
+export class HttpError extends Error { constructor(public status: number, message: string, public code?: string) { super(message); } }
 const memory = new Map<string, Map<string, Project>>();
-interface LocalRun { owner: string; projectId: string; runId: string; createdAt: number; day: string; month: string; status: string; researchAt?: number; researchDay?: string; researchMonth?: string; usage?: unknown }
+interface LocalRun { owner: string; projectId: string; runId: string; createdAt: number; day: string; month: string; status: string; researchAt?: number; researchDay?: string; researchMonth?: string; cancelRequestedAt?:number; cancelledBeforeReserve?:boolean; usage?: unknown }
 const locks = new Map<string, { owner: string; runId: string; expiresAt: number }>();
 const runs = new Map<string, LocalRun>();
 const quotaDay = (now: number) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
@@ -74,8 +74,8 @@ export async function reserveRun(s:StoreSession,projectId:string,runId:string):P
       const expired = runs.get(runKey(lock.owner, lock.runId)); if (expired) expired.status = 'expired';
       locks.delete(id);
     }
-    if (locks.has(projectId)) throw new HttpError(409, 'Já existe uma resposta sendo preparada para este projeto.');
-    const daily = [...runs.values()].filter(run => run.day === day);
+    if (locks.has(projectId)) throw new HttpError(409, 'Já existe uma resposta sendo preparada para este projeto.','RUN_BUSY');
+    const daily = [...runs.values()].filter(run => run.day === day&&!run.cancelledBeforeReserve);
     if (daily.filter(run => run.owner === s.owner).length >= 30) throw new HttpError(429, 'Você chegou ao limite de 30 mensagens de hoje. O canvas continua disponível.');
     if (daily.length >= 200) throw new HttpError(429, 'O limite de respostas de hoje foi atingido. O canvas continua disponível.');
     runs.set(key, { owner: s.owner, projectId, runId, createdAt: now, day, month, status: 'running' });
@@ -84,7 +84,7 @@ export async function reserveRun(s:StoreSession,projectId:string,runId:string):P
   const {data,error}=await s.db.rpc('create_reserve_run',{p_project_id:projectId,p_run_id:runId});
   if(error){
     if(error.code==='P0001')throw new HttpError(429,'Você chegou ao limite de uso de hoje. Continue editando o canvas.');
-    if(error.code==='55000')throw new HttpError(409,'Já existe uma resposta sendo preparada para este projeto.');
+    if(error.code==='55000')throw new HttpError(409,'Já existe uma resposta sendo preparada para este projeto.','RUN_BUSY');
     throw new HttpError(503,'Não foi possível iniciar a resposta agora. Tente novamente.');
   }
   return data===true;
@@ -99,6 +99,36 @@ export async function finishRun(s:StoreSession,runId:string,projectId:string,sta
     return;
   }
   await s.db.rpc('create_finish_run',{p_project_id:projectId,p_run_id:runId,p_status:status,p_usage:usage??{}});
+}
+/** Request cancellation without releasing the active generation's lease. */
+export async function requestRunCancel(s:StoreSession,projectId:string,runId:string):Promise<boolean> {
+  if(!s.db){
+    const projects=local(s);if(!projects.has(projectId))return false;
+    const key=runKey(s.owner,runId);const run=runs.get(key);const now=Date.now();
+    if(!run){
+      const day=quotaDay(now);const requests=[...runs.values()].filter(item=>item.cancelledBeforeReserve&&item.day===day);
+      if(requests.filter(item=>item.owner===s.owner).length>=30||requests.length>=200)throw new HttpError(429,'O limite diário de pedidos de cancelamento foi atingido.');
+      runs.set(key,{owner:s.owner,projectId,runId,createdAt:now,day,month:day.slice(0,7),status:'cancelled',cancelledBeforeReserve:true,cancelRequestedAt:now});
+      return true;
+    }
+    if(run.projectId!==projectId||run.status!=='running')return false;
+    const lock=locks.get(projectId);
+    if(!lock||lock.owner!==s.owner||lock.runId!==runId)return false;
+    run.cancelRequestedAt??=now;return true;
+  }
+  const {data,error}=await s.db.rpc('create_request_run_cancel',{p_project_id:projectId,p_run_id:runId});
+  if(error?.code==='P0001')throw new HttpError(429,'O limite diário de pedidos de cancelamento foi atingido.');
+  if(error)throw new HttpError(503,'Não foi possível solicitar a interrupção agora. Tente novamente.');
+  return data===true;
+}
+export async function isRunCancelRequested(s:StoreSession,projectId:string,runId:string):Promise<boolean> {
+  if(!s.db){
+    const run=runs.get(runKey(s.owner,runId));
+    return Boolean(run&&run.projectId===projectId&&run.status==='running'&&run.cancelRequestedAt!==undefined);
+  }
+  const {data,error}=await s.db.rpc('create_is_run_cancel_requested',{p_project_id:projectId,p_run_id:runId});
+  if(error)throw new HttpError(503,'Não foi possível conferir a interrupção da resposta.');
+  return data===true;
 }
 export async function reserveResearch(s:StoreSession,runId:string):Promise<boolean> {
   if(!s.db){

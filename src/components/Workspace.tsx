@@ -32,7 +32,7 @@ export default function Workspace({initial,autoStart,projects,health,onHome,onOp
   const replaceQueue=useCallback((items:QueuedPrompt[])=>{queueRef.current=items;if(mounted.current)setQueuedPrompts(items);try{if(items.length)sessionStorage.setItem(`create-queue-${initial.id}`,JSON.stringify(items));else sessionStorage.removeItem(`create-queue-${initial.id}`);}catch{}},[initial.id]);
   const pauseQueue=useCallback(()=>{pausedRef.current=true;setQueuePaused(true);},[]);
   const resumeQueue=useCallback(()=>{pausedRef.current=false;setQueuePaused(false);queueMicrotask(()=>drainQueueRef.current());},[]);
-  const cancelGeneration=useCallback(()=>{pauseQueue();abort.current?.abort();},[pauseQueue]);
+  const cancelGeneration=useCallback(()=>{pauseQueue();setActivity('Interrompendo execução…');abort.current?.abort();},[pauseQueue]);
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
   const notice=useCallback((label:string,ids:string[]=[])=>{setCanvasNotice(label);if(ids.length)setChangedCardIds(old=>[...new Set([...old,...ids])]);if(noticeTimer.current)clearTimeout(noticeTimer.current);noticeTimer.current=setTimeout(()=>{setCanvasNotice('');},4500);},[]);
   useEffect(()=>()=>{if(noticeTimer.current)clearTimeout(noticeTimer.current);},[]);
@@ -65,7 +65,7 @@ export default function Workspace({initial,autoStart,projects,health,onHome,onOp
   useEffect(()=>{const raw=sessionStorage.getItem(`create-draft-${initial.id}`);if(raw){try{const saved=JSON.parse(raw);const draft=saved.format==='create-draft'?mergeIncoming(saved.base,saved.project,initial):saved as Project;if(hasLocalContent(draft,initial)){working(draft);dirty.current=true;setSaveStatus('saving');void persist().catch(()=>{});}}catch{}}return()=>{if(timer.current)clearTimeout(timer.current);abort.current?.abort();};},[initial.id]);
   useEffect(()=>{if(saveStatus==='saved')sessionStorage.removeItem(`create-draft-${project.id}`);},[saveStatus,project.id]);
   useEffect(()=>{if(autoScroll.current)chatScroll.current?.scrollTo({top:chatScroll.current.scrollHeight,behavior:generating?'auto':'smooth'});},[project.messages,streamText,activity,runActivities]);
-  useEffect(()=>{const before=(e:BeforeUnloadEvent)=>{if(dirty.current||saving.current){e.preventDefault();}};window.addEventListener('beforeunload',before);return()=>window.removeEventListener('beforeunload',before);},[]);
+  useEffect(()=>{const before=(e:BeforeUnloadEvent)=>{if(dirty.current||saving.current){e.preventDefault();}};const hide=()=>abort.current?.abort();window.addEventListener('beforeunload',before);window.addEventListener('pagehide',hide);return()=>{window.removeEventListener('beforeunload',before);window.removeEventListener('pagehide',hide);};},[]);
   const title=useCallback((id:string,value:string)=>edit((p)=>({...p,updatedAt:new Date().toISOString(),cards:p.cards.map((c)=>c.id===id?{...c,title:value,humanEdited:true,revision:c.revision+1}:c)})),[edit]);
   const check=useCallback((id:string,blockId:string,itemId:string)=>edit((p)=>({...p,updatedAt:new Date().toISOString(),cards:p.cards.map((c)=>c.id===id?{...c,humanEdited:true,revision:c.revision+1,blocks:c.blocks.map((b)=>b.id===blockId?{...b,humanEdited:true,items:b.items?.map((i)=>i.id===itemId?{...i,checked:!i.checked,humanEdited:true}:i)}:b)}:c)})),[edit]);
   const move=useCallback((id:string,position:{x:number;y:number})=>edit((p)=>({...p,updatedAt:new Date().toISOString(),cards:p.cards.map((c)=>c.id===id?{...c,position,pinnedPosition:true}:c)})),[edit]);
@@ -109,7 +109,7 @@ export default function Workspace({initial,autoStart,projects,health,onHome,onOp
           if(hasLocalContent(merged,event.project))dirty.current=true;
           working(merged);if(event.type==='complete')setStreamText('');else notice(event.label,event.changedCardIds);setSaveStatus(dirty.current?'saving':'saved');
         }
-      },controller.signal,{evidence:evidenceRegistered,cardId});
+      },controller.signal,{evidence:evidenceRegistered,cardId,onWaiting:()=>setActivity('Aguardando a resposta anterior terminar…')});
       if(dirty.current)await flush();
       succeeded=true;
     } catch(e) {

@@ -72,4 +72,8 @@ O cliente agora envia um pedido explícito de interrupção autenticado, com o m
 
 `supabase/cancellation.sql` foi aplicado como `durable_run_cancellation`; as funções privilegiadas permanecem no schema privado, os wrappers públicos usam SECURITY INVOKER e não há acesso direto às tabelas internas. `supabase/tests/security.sql` passou no banco real, com todas as alterações de teste revertidas ao terminar: isolamento de visitantes, cancelamento antes da reserva, limite de pedidos, retenção do bloqueio até finalizar e aceitação da próxima execução. O cancelamento de uma execução ativa continua permitido mesmo após atingir o limite de pedidos antecipados.
 
-Após a correção, **178 testes em doze arquivos**, TypeScript e build de produção passaram. Arraste pelo cabeçalho e movimento pelo teclado foram conferidos no navegador; a posição ficou salva após recarregar. A versão final terá novamente teste real de IA/pesquisa, interrupção explícita, retomada e importação na URL pública.
+Após a correção, **178 testes em doze arquivos**, TypeScript e build de produção passaram. Arraste pelo cabeçalho e movimento pelo teclado foram conferidos no navegador; a posição ficou salva após recarregar.
+
+A publicação `dpl_2vq2RuGsZf45fbnSh3AqfNHFHpRr`, READY, passou nos **quinze critérios reais de `scripts/smoke-api.ts`**: os treze critérios anteriores, interrupção explícita autenticada com a próxima pergunta concluída e cancelamento anterior à reserva impedindo execução tardia. IA em modo `live`, seis cartões, oito fontes e uma proposta. O novo exemplo também passou novamente na URL pública, com HTTP 200 e dez cartões. Os projetos temporários do smoke foram removidos ao terminar.
+
+O botão Retomar aguarda o pedido de interrupção terminar; essa pequena proteção de interface evita tentar retomar a fila enquanto o próprio cliente ainda está encerrando a resposta anterior. Os mesmos 178 testes e o build passaram após esse ajuste.

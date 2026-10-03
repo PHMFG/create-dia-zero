@@ -14,11 +14,12 @@ interface Props {
   items: QueuedPrompt[];
   cards: CanvasCard[];
   paused: boolean;
+  busy?: boolean;
   onRemove: (id: string) => void;
   onResume: () => void;
 }
 
-export default function PromptQueue({ items, cards, paused, onRemove, onResume }: Props) {
+export default function PromptQueue({ items, cards, paused, busy = false, onRemove, onResume }: Props) {
   const [expanded, setExpanded] = useState(false);
   if (!items.length) return null;
   const visible = expanded ? items : items.slice(0, 3);
@@ -27,7 +28,7 @@ export default function PromptQueue({ items, cards, paused, onRemove, onResume }
   return <section className="prompt-queue" aria-label="Perguntas na fila">
     <header className="prompt-queue-heading">
       <div><ListPlus size={15} aria-hidden="true"/><strong>Fila de perguntas</strong><span className="prompt-queue-count">{items.length}</span></div>
-      {paused ? <div className="prompt-queue-paused"><span>Pausada</span><button type="button" onClick={onResume}><Play size={12} fill="currentColor"/>Retomar</button></div> : <span className="prompt-queue-running">Será respondida em ordem</span>}
+      {paused ? <div className="prompt-queue-paused"><span>{busy ? 'Interrompendo…' : 'Pausada'}</span><button type="button" disabled={busy} onClick={onResume}><Play size={12} fill="currentColor"/>Retomar</button></div> : <span className="prompt-queue-running">Será respondida em ordem</span>}
     </header>
     <ol className={expanded ? 'prompt-queue-items is-expanded' : 'prompt-queue-items'} aria-live="polite" aria-relevant="additions removals">
       {visible.map((item, index) => {

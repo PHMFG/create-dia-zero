@@ -1,89 +1,165 @@
-# create · da ideia à primeira evidência
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.png">
+    <img src="docs/assets/banner-light.png" alt="create — wordmark with the spark symbol and three connected plan cards" width="100%">
+  </picture>
+</p>
 
-Copiloto para quem está começando um negócio. A conversa organiza contexto e hipóteses num canvas editável, destaca uma ação e revisa o plano quando a pessoa retorna com uma experiência real.
+<p align="center">
+  <a href="#getting-started">Getting started</a> ·
+  <a href="#usage">Usage</a> ·
+  <a href="README.pt-BR.md">Português</a>
+</p>
 
-Aplicativo público: **[create-dia-zero.vercel.app](https://create-dia-zero.vercel.app)**.
+<p align="center">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-8438f5"></a>
+  <img alt="Node.js 24" src="https://img.shields.io/badge/node-24.x-5FA04E?logo=nodedotjs&amp;logoColor=white">
+  <img alt="React 19" src="https://img.shields.io/badge/react-19-61DAFB?logo=react&amp;logoColor=black">
+  <img alt="TypeScript" src="https://img.shields.io/badge/typescript-strict-3178C6?logo=typescript&amp;logoColor=white">
+</p>
 
-## Wiki do projeto
+<p align="center">
+  <img src="docs/assets/screenshot-workspace.png" alt="The create workspace: the conversation on the left and the plan canvas on the right, with the Now card of the fictional Chabor demo" width="900">
+</p>
 
-A [wiki da create](wiki/index.md) reúne produto, arquitetura, domínio, interface, IA, pesquisa, persistência, segurança e operação, com links para o código e datas das verificações. Para continuar o desenvolvimento em outro chat, comece pelo [AGENTS.md](AGENTS.md) e leia as páginas relacionadas à tarefa. O [estado das verificações](wiki/risks.md) distingue resultados locais atuais de registros anteriores de produção e design.
+**From a business idea to its first real evidence, one small test at a time.**
 
-## Usar o aplicativo
+create is a copilot for people starting their first business, in Brazilian Portuguese. You tell it your idea; a short interview turns it into a visual plan of cards and points to one thing to do now. Then you run that test in the real world, come back with what happened, and the plan proposes a revision you can accept or reject.
 
-1. Conte sua ideia na tela inicial ou explore o exemplo Chabor, identificado como demonstração.
-2. Converse com a create: a entrevista considera público, recursos, restrições e lacunas, com uma pergunta principal por vez. Cartões e fontes podem aparecer enquanto a IA trabalha, antes da resposta final. Use **Esclarecer** para conversar sobre um cartão específico.
-3. Abra **Sobre** para ler o cartão em **Visualizar**. Use **Editar** ou o lápis de um bloco para corrigir o conteúdo; checklists, título e resumo permitem ajustes na leitura. No celular, alterne entre lista e canvas.
-4. Ligue a saída inferior de um cartão à entrada de outro para indicar dependência. Clique na conexão para removê-la; o app impede ciclos e ligações duplicadas. Arraste o fundo para navegar e use o zoom ou a visão geral para se orientar.
-5. Use **Pesquisar** para consultar referências na web. As anotações podem incluir fontes, links, imagens retornadas pela pesquisa e localização informada. Imagens dependem do que o serviço encontra; um mapa da cidade não confirma o endereço de uma instituição.
-6. Faça o teste fora do aplicativo e use **Registrar experiência** para trazer o resultado.
-7. Compare e aceite ou rejeite a proposta de revisão. Uma checklist concluída não valida o negócio.
+Start small, learn for real. Hypotheses, research and evidence keep their origin, and a ticked checklist is never treated as proof that people want what you are building.
 
-Sem cadastro: o Supabase cria uma identidade anônima persistida neste navegador. Os projetos são privados para essa identidade. O link de um projeto não dá acesso a outro visitante. **Exporte uma cópia JSON antes de limpar os dados do navegador ou mudar de dispositivo.** Importar cria um projeto independente. Há no máximo três projetos por sessão.
+## Features
 
-O exemplo Chabor reúne dez cartões nos sete tipos do canvas: ideia, hipótese, pesquisa, ação, evidência, decisão e anotação. Seu fluxo conta uma entrevista fictícia, a leitura desse relato e a escolha de um próximo teste gratuito. Valores e resultados são ilustrativos; a referência do Sebrae é manual e não está marcada como pesquisa verificada. O canvas abre no próximo passo, com minimapa e um botão para voltar à ação. Novas cópias recebem o exemplo atualizado; projetos já salvos preservam suas edições.
+- **From conversation to canvas.** The chat asks one question at a time and adds cards to an editable canvas while it works; each card is saved before it appears.
+- **One next step.** At most one action sits in *Agora* (Now), and prerequisite links between cards reject cycles and duplicates.
+- **Your edits stay.** Titles, blocks, checklists, positions and links you change are preserved; AI changes that would overwrite them become proposals.
+- **Research with sources.** Optional web search adds links, excerpts and consultation dates. When search is off, the app says so instead of inventing results.
+- **Learn from real tests.** Log what happened and compare the proposed revision side by side before applying it.
+- **No sign-up.** Projects belong to an anonymous browser session (up to three), with JSON export and import.
 
-## Acompanhamento da IA
+## Getting started
 
-A conversa mostra uma sequência de atividades com início, conclusão ou falha: interpretação da mensagem, leitura do projeto, pesquisa, cálculos e salvamento de cada anotação. Cartões aceitos aparecem um por vez, depois de salvos; o histórico oferece acesso direto ao cartão afetado. O selo **Atualizado** permanece até você abrir o cartão ou iniciar outra conversa. Mudanças de prioridade continuam agrupadas em propostas para revisão.
+> [!NOTE]
+> You need **Node.js 24** and npm. No API keys are required to try it locally: without them, projects are kept in memory and the assistant runs in a basic guided mode, clearly labeled as such. The interface is in Brazilian Portuguese.
 
-## Desenvolvimento
-
-Node.js 24 e npm:
-
-```sh
+```bash
+git clone https://github.com/PHMFG/create-dia-zero.git
+cd create-dia-zero
 npm ci
 cp .env.example .env.local
-# Configure as variáveis em .env.local.
 npm run dev
 ```
 
-Abra `http://127.0.0.1:5173`. O servidor local executa a mesma API Hono que o Vercel e serve o Vite com atualização imediata da interface. Reinicie manualmente após alterar o backend: isso evita interromper conversas durante edições. `npm run dev:watch` habilita reinícios automáticos para desenvolvimento isolado. `npm run preview` serve apenas os arquivos estáticos; use `npm run dev` para testar o produto completo.
+Open http://127.0.0.1:5173. The same process serves the Vite frontend and the Hono API; restart it after changing backend code.
 
-```sh
+```bash
 npm test
+npm run typecheck
 npm run build
 ```
 
-Sem Supabase, o desenvolvimento usa armazenamento em memória por sessão, perdido ao reiniciar o servidor. Em produção o banco é obrigatório. Sem provedores de IA, a resposta identifica o modo de orientação básica, sem alegar uma inferência real.
+<details>
+<summary><strong>Optional configuration</strong></summary>
+<br>
 
-## Infraestrutura já configurada
+Add keys to `.env.local` to turn on each service. They are read by the server only.
 
-- Vercel: projeto `create-dia-zero`, SPA React/Vite e função Node.js `/api/index.mjs`, em São Paulo.
-- Supabase: projeto `create-dia-zero`, região São Paulo, referência `sbswpqwoengvakailgkn`, autenticação anônima habilitada.
-- Banco: `supabase/schema.sql` e `supabase/cancellation.sql` aplicados pelo conector. Cada projeto pertence a `auth.uid()`; Row Level Security impede acesso entre visitantes. A interrupção é registrada no banco para funcionar também atrás do proxy do Vercel.
-- As chaves Jev, OpenCode Go e Tavily estão nas variáveis do servidor; Tavily também está configurado no ambiente local. A chave publishable do Supabase é pública por design e protegida pelas políticas; nenhuma chave service role é usada.
-- A pesquisa externa usa `TAVILY_API_KEY`, já configurada nesta implantação. Em outro ambiente, sem essa variável ou com o serviço indisponível, o app informa a limitação e não inventa resultados.
+| Variables | What they enable |
+| --- | --- |
+| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | Persistent projects with anonymous auth and row-level security. Required in production. |
+| `OPENCODE_GO_API_KEY`, `OPENCODE_MODEL`, `OPENCODE_BASE_URL` | Generated replies through an OpenAI-compatible endpoint (OpenCode Go by default). |
+| `TYPESAFE_API_KEY`, `TYPESAFE_MODEL` | Message routing with Jev; simple rules are used without it. |
+| `TAVILY_API_KEY` | Web research. |
 
-Para reproduzir em outro projeto Supabase, aplique `supabase/schema.sql` seguido de `supabase/cancellation.sql` e habilite **Authentication → Sign In / Providers → Anonymous Sign-Ins**. Não exponha o schema `private` na Data API. Configure URL e publishable key nas variáveis do servidor.
+To use your own Supabase project, apply `supabase/schema.sql` and then `supabase/cancellation.sql`, enable **Anonymous Sign-Ins** under *Authentication → Sign In / Providers*, and keep the `private` schema out of the Data API. `vercel.json` deploys the static build together with the API as a Node.js function.
 
-## Publicar atualizações
+</details>
 
-```sh
-npx vercel link --project create-dia-zero
-npm test
-npm run build
-npx vercel --prod
+## Usage
+
+1. Run `npm run dev` and open the app.
+2. Click **Explore um projeto de exemplo** to open *Chabor*, a fictional matcha brand used as a guided demo, or type an idea such as *“Quero abrir uma cafeteria diferente na minha cidade.”*
+3. On the canvas, the **Agora** card is your next step. Tick its checklist, open **Sobre** for the full card, or use the chat bubble to ask a question about that card.
+4. After running the test for real, click **Experiência**, describe what you observed and review the proposed revision.
+
+<p align="center">
+  <img src="docs/assets/demo-canvas.gif" alt="Ticking two steps of the Now card on the canvas, opening the card, ticking a third step and closing it" width="800">
+</p>
+
+## Screens
+
+<details>
+<summary><strong>Show the gallery</strong></summary>
+<br>
+
+<p align="center">
+  <img src="docs/assets/screenshot-landing.png" alt="Landing page with the idea field, three suggestions and a link to the example project" width="800"><br>
+  <em>Start from an idea or open the example project.</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/screenshot-card-detail.png" alt="Card details panel with view, edit and history tabs and a four-step checklist" width="800"><br>
+  <em>Each card has a view, an editor and a history.</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/screenshot-proposal-review.png" alt="Revision dialog comparing the current plan with a proposed new card, with Keep my plan and Apply revision buttons" width="800"><br>
+  <em>Logging an experience leads to a proposal you can apply or reject. Captured in the offline guided mode, which says so.</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/screenshot-mobile.png" alt="Two phone screens: the landing page and the plan in list view" width="560"><br>
+  <em>On small screens, the conversation and the plan become tabs.</em>
+</p>
+
+</details>
+
+## How it works
+
+```mermaid
+flowchart LR
+  UI["Browser<br/>React + React Flow"] -->|message| API["Hono API"]
+  API -->|"SSE: saved updates"| UI
+  API --> DOMAIN["Shared domain rules"]
+  API --> TOOLS["AI tools"]
+  TOOLS --> MODEL["Generative model"]
+  TOOLS --> ROUTER["Jev router"]
+  TOOLS --> SEARCH["Tavily search"]
+  API --> DB[("Supabase<br/>auth + RLS")]
+  API -.->|local dev| MEMORY[("In-memory store")]
 ```
 
-Atualize variáveis em **Vercel → Settings → Environment Variables**, marque segredos como sensitive e faça uma nova publicação. Não sobrescreva `.env.local` com `vercel env pull` sem preservar as variáveis locais. `.env.local` e `.vercel` são ignorados pelo Git; `.env.example` contém apenas nomes.
+During a reply, the model can read the project, search, calculate and publish cards. The API checks every change against the shared domain rules and saves it with a version check before streaming it to the browser, which merges it with edits you have not saved yet. Stopping a reply is an explicit, durable request, so it also works behind a proxy. The [architecture page](wiki/architecture.md) of the wiki has the details (in Portuguese).
 
-## Arquitetura e limites
+## Roadmap
 
-Veja `docs/architecture.md` para o fluxo de IA, modelo de dados e decisões. A ferramenta `publish_canvas` valida e salva cada atualização antes de enviá-la como evento SSE `project`. A pesquisa publica referências antes de extrair os documentos e enriquece a mesma anotação depois. A interface incorpora essas versões enquanto preserva texto, checklist, exclusões, conexões e posições editadas localmente. Alterações estratégicas e conflitos produzem propostas; propostas antigas não podem substituir uma edição nova.
+- [x] Conversation that builds an editable canvas with seven card types
+- [x] Cards published one by one over SSE, each saved before it is shown
+- [x] Human edits preserved, with conflicts turned into proposals
+- [x] Web research with sources and consultation dates
+- [x] Experience logging and revision proposals
+- [x] Anonymous sessions with row-level security, plus JSON export and import
+- [x] Offline guided mode and the Chabor demo project
+- [ ] Public demo back online (the deployment is paused)
+- [ ] Move projects between devices without exporting a file
+- [ ] Verify bot-protection tokens on the API
+- [ ] English interface
+- [ ] Continuous integration running the tests on Node.js 24
 
-O texto da resposta chega em chunks reais do modelo depois de uma publicação, quando esse fluxo está disponível. O evento `complete` traz a versão final salva. Se uma geração for interrompida, atualizações já persistidas continuam no projeto. Operações publicadas não são reaplicadas no fim do turno.
+## Documentation
 
-As reservas no banco limitam a IA a 30 mensagens por visitante/dia e 200 globalmente/dia, com uma geração ativa por projeto. Pesquisa: até duas buscas e cinco páginas por turno, cinco turnos por visitante/dia, 25 globalmente/dia e reserva de até 750 créditos/mês. Datas seguem São Paulo. Há prazo de 90 segundos por geração e trava de 120 segundos para recuperar interrupções. Limites controlam uso do MVP; não garantem gratuidade dos provedores nem substituem proteção contra abuso ao crescer.
+The [project wiki](wiki/index.md) covers product, architecture, domain, AI, research, persistence, security and operations, and [AGENTS.md](AGENTS.md) explains how to continue development. Both are in Portuguese. Earlier verification reports are in [`docs/`](docs/).
 
-O roteiro qualitativo de 30 cenários em `tests/ai-evaluation.json` é uma lista de casos para avaliação, não uma alegação de 30 testes reais do modelo. Testes automatizados cobrem contratos, fontes, edições humanas, conflitos, cotas e persistência local. `supabase/tests/security.sql` testa políticas/transações e desfaz os dados de teste.
+## License and credits
 
-Smoke real opcional (cria sessões e projetos descartáveis, verifica criação incremental, revisão e pesquisa quando disponível, e apaga os projetos):
+The code is released under the [MIT License](LICENSE). The create wordmark, the spark symbol and the images in [`docs/assets/`](docs/assets/) were made for this project; the screenshots show only fictional demo data.
 
-```sh
-npx tsx scripts/smoke-api.ts http://127.0.0.1:5173
-# Também aceita https://create-dia-zero.vercel.app.
-```
+Built with open-source software, each under its own license:
 
-Veja `docs/verification.md` para os resultados das verificações, incluindo o ambiente e a publicação usados em cada teste.
+- [Inter](https://github.com/rsms/inter) typeface via Fontsource — SIL Open Font License 1.1
+- [Lucide](https://lucide.dev) icons — ISC
+- [React](https://react.dev), [React Flow](https://reactflow.dev), [Motion](https://motion.dev), [react-markdown](https://github.com/remarkjs/react-markdown), [Vite](https://vite.dev), [Hono](https://hono.dev), [Zod](https://zod.dev), [Supabase JS](https://github.com/supabase/supabase-js), [TypeSafe SDK](https://www.npmjs.com/package/@typesafe-ai/sdk) — MIT
+- [AI SDK](https://ai-sdk.dev) and its OpenAI-compatible provider, [TypeScript](https://www.typescriptlang.org), [Playwright](https://playwright.dev) — Apache 2.0
+- [Vitest](https://vitest.dev), [esbuild](https://esbuild.github.io), [tsx](https://tsx.is) — MIT; [dotenv](https://github.com/motdotla/dotenv) — BSD 2-Clause
 
-Pesquisa e fatos externos são registrados com links, trechos e data de consulta. `verified` indica que a referência foi recuperada pelo servidor; não garante a conclusão, a atualidade de toda afirmação ou a licença de uma imagem. Referências importadas permanecem não verificadas. Localizações usam dados fornecidos ou endereços presentes em fontes; a IA não estima coordenadas. Questões especializadas requerem fontes adequadas e confirmação profissional quando forem essenciais à execução.
+The optional services (OpenCode Go, Jev, Tavily, Supabase and Vercel) are not bundled and follow their own terms.

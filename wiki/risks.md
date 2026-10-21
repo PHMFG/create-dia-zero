@@ -1,12 +1,11 @@
 ---
 title: Riscos e estado das verificações
 kind: topic
-updated: 2026-10-07
+updated: 2026-10-21
 status: mixed
 sources:
   - ../docs/verification.md
   - ../docs/verification-db.md
-  - ../.design-export/updates/implementation-notes.md
   - ../package.json
   - ../src/main.tsx
   - ../src/design-system.css
@@ -54,7 +53,7 @@ O [mapa de testes](testing.md) detalha comportamentos cobertos e as ações com 
 
 **Informação externa.** Um resultado recuperado não garante atualidade de cada afirmação, licença de imagem ou validade de uma conclusão de negócio. Imagens e mapas podem falhar; um mapa de cidade não confirma um endereço comercial. Veja [pesquisa](research.md).
 
-**Estado de trabalho e publicação.** A análise incluiu mudanças de design não commitadas e `.design-export/` não rastreado. Os ignores atuais não excluem essa pasta. Revise o conjunto de arquivos a publicar conforme [operação](operations.md), sem confundir capturas estáticas com fontes de runtime ou alterar disponibilidade a partir desta documentação.
+**Estado de trabalho e publicação.** A análise de 7 de outubro incluiu mudanças de design então não commitadas e `.design-export/` não rastreado. Desde 21 de outubro de 2026, essas mudanças estão commitadas e o `.gitignore` exclui `.design-export/`, que fica só na cópia local e não existe num clone. Revise o conjunto de arquivos a publicar conforme [operação](operations.md), sem confundir capturas estáticas com fontes de runtime ou alterar disponibilidade a partir desta documentação.
 
 ## Próximas verificações conforme a tarefa
 

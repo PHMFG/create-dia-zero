@@ -9,8 +9,6 @@ sources:
   - ../../docs/architecture.md
   - ../../docs/verification.md
   - ../../docs/verification-db.md
-  - ../../.design-export/README.md
-  - ../../.design-export/updates/implementation-notes.md
 ---
 
 # Fontes do repositório da create

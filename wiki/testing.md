@@ -21,8 +21,6 @@ sources:
   - ../src/lib/eventStream.ts
   - ../src/lib/projectMerge.ts
   - ../src/lib/projectMerge.test.ts
-  - ../.design-export/src/lib/cardLayout.test.ts
-  - ../.design-export/src/lib/projectMerge.test.ts
   - ../scripts/smoke-api.ts
   - ../scripts/smoke-demo.ts
   - ../scripts/build-api.mjs

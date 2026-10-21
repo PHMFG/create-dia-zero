@@ -1,7 +1,7 @@
 ---
 title: Testes e verificações
 kind: topic
-updated: 2026-10-07
+updated: 2026-10-21
 status: test-verified
 sources:
   - ../package.json
@@ -54,7 +54,7 @@ O comando automatizado do pacote é `npm test`, que executa `vitest run`. O esco
 
 [tests/ai-evaluation.json](../tests/ai-evaluation.json) traz 30 situações qualitativas em português e uma rubrica para entrevista, contexto, evidência, pesquisa, cálculo, segurança e edição humana. O próprio arquivo declara que é roteiro, não resultado de execuções live. Não há comando de avaliação de modelo em [package.json](../package.json), e essa lista não deve ser contada como 30 testes automatizados.
 
-O comando padrão `npm test` descobre 14 arquivos: 12 ativos nos diretórios `tests/` e `src/lib/`, mais [o snapshot do teste de layout](../.design-export/src/lib/cardLayout.test.ts) e [o snapshot do merge](../.design-export/src/lib/projectMerge.test.ts), sob a pasta local não rastreada `.design-export/`. Os dois snapshots acrescentam 12 casos à contagem padrão (2 de layout e 10 de merge), mas não novos comportamentos ativos do produto. Com `--exclude '**/.design-export/**'`, a suíte ativa contém 12 arquivos. Veja [operations.md](operations.md) para comandos e ambiente.
+O comando padrão `npm test` descobre 14 arquivos: 12 ativos nos diretórios `tests/` e `src/lib/`, mais o snapshot do teste de layout (`.design-export/src/lib/cardLayout.test.ts`) e o snapshot do merge (`.design-export/src/lib/projectMerge.test.ts`), sob a pasta local `.design-export/`, que o `.gitignore` exclui do repositório. Os dois snapshots acrescentam 12 casos à contagem padrão (2 de layout e 10 de merge), mas não novos comportamentos ativos do produto. Com `--exclude '**/.design-export/**'`, a suíte ativa contém 12 arquivos. Veja [operations.md](operations.md) para comandos e ambiente.
 
 ## Smoke, SQL e histórico
 

@@ -1,7 +1,7 @@
 ---
 title: Design ativo e extração para Figma
 kind: topic
-updated: 2026-10-07
+updated: 2026-10-21
 status: code-verified
 sources:
   - ../src/main.tsx
@@ -65,7 +65,7 @@ sources:
 
 # Design ativo e extração para Figma
 
-O estilo que o usuário vê é definido pelo código carregado em `src/` e pelos SVGs de `public/`. A pasta [`.design-export/`](../.design-export/README.md) guarda outra coisa: uma ferramenta offline, cópias de código, dados de amostra e saídas estáticas preparados para documentar telas no Figma. As imagens e auditorias dessa pasta registram etapas anteriores do processo de design; por si só, elas não verificam a interface atual. Para os componentes ativos, veja [Frontend](./frontend.md) e [Canvas e cartões](./canvas.md).
+O estilo que o usuário vê é definido pelo código carregado em `src/` e pelos SVGs de `public/`. A pasta local `.design-export/`, que o `.gitignore` exclui do repositório, guarda outra coisa: uma ferramenta offline, cópias de código, dados de amostra e saídas estáticas preparados para documentar telas no Figma. As imagens e auditorias dessa pasta registram etapas anteriores do processo de design; por si só, elas não verificam a interface atual. Para os componentes ativos, veja [Frontend](./frontend.md) e [Canvas e cartões](./canvas.md).
 
 ## Tokens e camadas CSS em uso
 
@@ -87,7 +87,7 @@ O resto dos ícones de interface usa `lucide-react`. Fotos e imagens de referên
 
 ## Procedência de `.design-export/`
 
-O [`README.md`](../.design-export/README.md) descreve um export offline para organizar telas e componentes no Figma. Há dois caminhos locais: `components.tsx` reutiliza alguns componentes da aplicação ativa para gerar a biblioteca, enquanto `Harness.tsx` e `export.tsx` usam `src/` e `shared/` copiados sob `.design-export/`, com fixtures explícitas de `designState.ts` e callbacks sem efeito. `manifest.ts` enumera 43 variantes de tela; `vite.config.ts` e `entry.tsx` configuram o preview isolado em localhost. Não é a aplicação publicada: nessa harness, `health` é fixo e as ações são no-op. A documentação do export informa que a prévia não chama a API do app.
+O arquivo local `.design-export/README.md` descreve um export offline para organizar telas e componentes no Figma. Há dois caminhos locais: `components.tsx` reutiliza alguns componentes da aplicação ativa para gerar a biblioteca, enquanto `Harness.tsx` e `export.tsx` usam `src/` e `shared/` copiados sob `.design-export/`, com fixtures explícitas de `designState.ts` e callbacks sem efeito. `manifest.ts` enumera 43 variantes de tela; `vite.config.ts` e `entry.tsx` configuram o preview isolado em localhost. Não é a aplicação publicada: nessa harness, `health` é fixo e as ações são no-op. A documentação do export informa que a prévia não chama a API do app.
 
 `out/` contém HTMLs repetidos por tela, categoria, captura e drawer; `preview-dist/` contém bundles compilados e fontes binárias. `prepare-capture.mjs` prepara cópias em `out/capture/` e injeta o script oficial de captura do Figma; a execução da captura é uma etapa separada do app. Esses arquivos gerados não são fontes da interface atual. `figma-preview.png`, os JPGs de implementação e os arquivos em `updates/` são registros visuais/textuais de uma revisão em 6 de outubro de 2026. Os registros dizem respeito àquela revisão; não servem como QA visual atual.
 

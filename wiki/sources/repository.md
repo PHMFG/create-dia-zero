@@ -1,7 +1,7 @@
 ---
 title: Fontes do repositório da create
 kind: source
-updated: 2026-10-07
+updated: 2026-10-21
 status: mixed
 sources:
   - ../../package.json
@@ -15,7 +15,7 @@ sources:
 
 # Fontes do repositório da create
 
-A análise usa o checkout da raiz do repositório (`./`) em **7 de outubro de 2026**. O HEAD observado é `9cb3e44922ab0618e6e0acdc16f04754135431e3`, branch `codex/create-mvp`. O estado lido inclui mudanças locais de design em 14 arquivos rastreados e arquivos novos em `src/`, `public/` e `.design-export/`. Assim, o HEAD isolado não reproduz todo o estado documentado.
+A análise usa o checkout da raiz do repositório (`./`) em **7 de outubro de 2026**. O HEAD observado é `ee6d90999b951a82d027170117667aba731e4195`, branch `codex/create-mvp`. O estado lido inclui mudanças locais de design em 14 arquivos rastreados e arquivos novos em `src/`, `public/` e `.design-export/`. Assim, o HEAD isolado não reproduz todo o estado documentado.
 
 Três subagentes **gpt-6-luna**, com esforço **max**, dividiram frontend/design, backend/IA/dados e domínio/testes/operação. A raiz leu as referências, montou a síntese entre áreas e executou as verificações locais. A lista abaixo serve para localizar evidências, não para atribuir disponibilidade externa ao código.
 
@@ -45,8 +45,8 @@ O lockfile dá as versões resolvidas; não é uma implementação de comportame
 | [docs/architecture.md](../../docs/architecture.md) | Síntese anterior do MVP. | Contexto dos mecanismos; conferir código e design ativos. |
 | [docs/verification.md](../../docs/verification.md) | Etapas de 3 de outubro de 2026, incluindo produção e cancelamento. | Evidência histórica delimitada a cada execução. |
 | [docs/verification-db.md](../../docs/verification-db.md) | SQL e advisors de 3 de outubro de 2026. | Registro histórico; não auditoria atual do serviço. |
-| [.design-export/README.md](../../.design-export/README.md) | Extração de estados e biblioteca para Figma. | Explica cópias, mocks, geração e limites da captura. |
-| [.design-export/updates/implementation-notes.md](../../.design-export/updates/implementation-notes.md) | Implementação visual registrada em 6 de outubro de 2026. | Procedência dos ajustes locais e QA visual daquela revisão. |
+| `.design-export/README.md` (local, fora do Git) | Extração de estados e biblioteca para Figma. | Explica cópias, mocks, geração e limites da captura. |
+| `.design-export/updates/implementation-notes.md` (local, fora do Git) | Implementação visual registrada em 6 de outubro de 2026. | Procedência dos ajustes locais e QA visual daquela revisão. |
 | `.design-export/` fontes, manifestos e audits | Harness, cenários, exportação, captura, tokens e notas locais. | [Design](../design-system.md) separa origem de capturas e runtime. |
 
 Os HTMLs de `out/`, arquivos de `preview-dist/`, imagens de QA e manifestos derivados não são módulos adicionais do aplicativo. Foram considerados como saídas das ferramentas de design; sua presença não prova uma nova execução visual nem o conteúdo atual do Figma remoto.

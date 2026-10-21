@@ -1,7 +1,7 @@
 ---
 title: Histórico da wiki da create
 kind: log
-updated: 2026-10-07
+updated: 2026-10-21
 status: test-verified
 sources:
   - sources/repository.md
@@ -15,7 +15,7 @@ Registro por acréscimo das atualizações relevantes. O [índice](index.md) org
 
 ## [2026-10-07] ingest | Wiki inicial do repositório
 
-**Escopo:** checkout `codex/create-mvp`, HEAD `9cb3e44922ab0618e6e0acdc16f04754135431e3` e mudanças locais de design preexistentes. Três subagentes `gpt-6-luna` com esforço `max` analisaram interface/design, backend/IA/dados e domínio/testes/operação; a raiz compilou a síntese e revisou a documentação.
+**Escopo:** checkout `codex/create-mvp`, HEAD `ee6d90999b951a82d027170117667aba731e4195` e mudanças locais de design preexistentes. Três subagentes `gpt-6-luna` com esforço `max` analisaram interface/design, backend/IA/dados e domínio/testes/operação; a raiz compilou a síntese e revisou a documentação.
 
 **Resultado:** páginas conectadas de produto, arquitetura, frontend, canvas, design, domínio, backend, IA, pesquisa, persistência, segurança, decisões, operação, testes e riscos; catálogo de fontes e convenções de manutenção. `AGENTS.md` passou a fornecer o ponto de entrada para chats futuros e o README recebeu um link para a wiki.
 
@@ -26,3 +26,11 @@ Registro por acréscimo das atualizações relevantes. O [índice](index.md) org
 **Revisão documental:** 20 páginas conferidas; 471 links locais e 235 referências locais de frontmatter resolvidos, sem arquivos ausentes ou páginas órfãs. Todos os arquivos rastreados do projeto têm referência explícita na wiki. `git diff --check` passou. A revisão cruzada do backend confirmou a síntese e acrescentou a fonte SQL de cancelamento à arquitetura.
 
 As alterações desta tarefa são documentais. IA real, pesquisa, SQL remoto, disponibilidade de produção e estado do Figma não foram verificados novamente. Consulte [mapa de fontes](sources/repository.md) para a procedência e [AGENTS.md](../AGENTS.md) para continuar.
+
+## [2026-10-21] maintenance | Preparação para publicar no GitHub
+
+**Escopo:** o `.gitignore` passou a excluir `.design-export/`, `.DS_Store`, `Thumbs.db`, `.idea/`, `.vscode/`, `*.log` e `coverage/`. O e-mail de autor e committer dos commits de `codex/create-mvp` foi trocado pelo endereço noreply do GitHub com `git filter-repo`; árvores, datas e mensagens se mantiveram, mas todos os hashes mudaram.
+
+**Resultado:** os links Markdown para arquivos de `.design-export/` em [testes](testing.md), [design](design-system.md) e [fontes](sources/repository.md) viraram caminhos em código, porque a pasta não existe num clone. As citações do HEAD analisado em 7 de outubro, nesta página e em [fontes](sources/repository.md), passaram a usar o hash reescrito `ee6d909`, que tem a mesma árvore. Em [fontes](sources/repository.md), o caminho absoluto do checkout virou `./`.
+
+**Verificações:** os links Markdown locais das páginas alteradas resolvem para arquivos rastreados; `git diff --check` passou. A mudança é documental: testes, build e serviços não foram executados.

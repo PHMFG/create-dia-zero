@@ -1,0 +1,43 @@
+/* Figma live: 103:973 and 128:704. */
+.card-mini-chat.design-card-chat {
+  width: 390px; height: 500px;
+  background: var(--surface-raised, #fff);
+  border-color: var(--border-strong, #d9c9e8);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: 0 16px 48px rgb(42 33 52 / 16%), 0 4px 8px rgb(42 33 52 / 6%);
+}
+.design-card-chat > header {
+  padding: 12px 16px; gap: 8px;
+  border-color: var(--border-subtle, #eae5ef);
+}
+.design-card-chat > header span { font-size: 12px; line-height: 1.4; color: var(--text-tertiary, #765a86); }
+.design-card-chat > header h2 {
+  font: 500 22px/1.25 var(--heading);
+  letter-spacing: -.2px; color: var(--text-primary, #2a2134);
+  white-space: normal; margin: 4px 0 0;
+}
+.design-card-chat .mini-chat-symbol { width: 30px; height: 30px; border-radius: var(--radius-md, 8px); background: var(--surface-subtle, #f5effd); }
+.design-card-chat > header .icon-button { width: 28px; height: 28px; border-radius: var(--radius-md, 8px); }
+.design-card-chat .mini-chat-history { padding: 20px; }
+.design-card-chat .mini-chat-welcome { padding: 21px 0 18px; font-size: 16px; line-height: 1.5; color: var(--text-tertiary, #765a86); }
+.design-card-chat .mini-chat-welcome .mini-chat-welcome-brand {
+  display: block; width: 74px; height: 74px;
+  margin: 0 auto 12px;
+}
+.design-card-chat .mini-chat-welcome h3 { font: 500 22px/1.25 var(--heading); letter-spacing: -.2px; color: var(--text-tertiary, #765a86); margin: 0 0 12px; }
+.design-card-chat .mini-chat-welcome > p { margin: 0 0 18px; font-size: 16px; line-height: 1.5; }
+.design-card-chat .mini-chat-welcome > button { font-size: 14px; line-height: 1.5; padding: 8px 12px; min-height: 40px; gap: 8px; border-color: var(--border-default, #e7deef); border-radius: var(--radius-md, 8px); background: var(--surface-subtle, #f5effd); color: var(--text-tertiary, #765a86); }
+.design-card-chat .mini-chat-message { font-size: 16px; line-height: 1.5; color: var(--text-tertiary, #765a86); }
+.design-card-chat .mini-chat-message strong { color: var(--text-secondary, #614470); font-weight: 500; }
+.design-card-chat .mini-user { background: var(--surface-subtle, #f5effd); border-color: var(--border-default, #e7deef); font-size: 14px; }
+.design-card-chat .mini-chat-composer { margin: 0 16px 16px; padding: 12px; gap: 8px; border-color: var(--border-default, #e7deef); border-radius: var(--radius-lg, 12px); }
+.design-card-chat .mini-chat-composer textarea { min-height: 50px; font-size: 16px; line-height: 1.5; color: var(--text-tertiary, #765a86); }
+.design-card-chat .mini-chat-composer textarea::placeholder { color: var(--text-tertiary, #765a86); opacity: 1; }
+.design-card-chat .mini-chat-composer .send-button { width: 36px; height: 36px; border-radius: var(--radius-md, 8px); }
+@media (max-width: 760px) {
+  .card-mini-chat.design-card-chat { left: 12px; right: 12px; bottom: 12px; width: auto; border-radius: var(--radius-lg, 12px); }
+  .design-card-chat > header h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .design-card-chat .mini-chat-welcome { padding: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .design-card-chat .mini-chat-welcome .mini-chat-welcome-brand { margin-bottom: 0; }
+  .design-card-chat .mini-chat-welcome h3, .design-card-chat .mini-chat-welcome > p { margin: 0; }
+}

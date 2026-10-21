@@ -4,6 +4,7 @@ import { ArrowUpRight, X } from 'lucide-react';
 import type { Health, Project } from '../shared/types';
 import { api } from './lib/api';
 import Landing from './components/Landing';
+import { BrandArrow } from './components/BrandVisual';
 const Workspace = lazy(() => import('./components/Workspace'));
 
 export default function App() {
@@ -77,7 +78,7 @@ export default function App() {
         <p>A create transforma o que você imagina em algo que você pode testar. Converse, organize seu plano e traga o que aconteceu para decidir o próximo passo.</p>
         <div className="about-steps"><span>01 · Conte sua ideia</span><span>02 · Faça um teste pequeno</span><span>03 · Aprenda e ajuste</span></div>
         <p className="subtle">Seu projeto pertence à sua sessão neste navegador. Exporte uma cópia para continuar em outro dispositivo. Evidências de demonstração são sempre identificadas.</p>
-        <button className="primary-button" onClick={() => setHelpOpen(false)}>Vamos criar <ArrowUpRight size={18}/></button>
+        <button className="primary-button" onClick={() => setHelpOpen(false)}>Vamos criar <BrandArrow size={18} tone="on-brand"/></button>
       </motion.section>
     </motion.div>}</AnimatePresence>
   </div></MotionConfig>;

@@ -1,0 +1,18 @@
+.brand-spark, .brand-arrow {
+  display: inline-block;
+  position: relative;
+  width: var(--visual-size);
+  height: var(--visual-size);
+  flex-shrink: 0;
+  vertical-align: middle;
+  line-height: 0;
+}
+.brand-spark > img, .brand-arrow > img {
+  display: block;
+  max-width: none;
+  transform: scale(var(--visual-scale));
+  transform-origin: top left;
+}
+.brand-spark { border-radius: calc(var(--visual-size) / 4); overflow: hidden; }
+.brand-spark--brand { background: var(--surface-brand, #8438f5); }
+.brand-spark--light { background: var(--surface-raised, #fff); }

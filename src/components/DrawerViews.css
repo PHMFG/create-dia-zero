@@ -77,3 +77,50 @@
   .card-drawer .drawer-read-pencil { width: 36px; height: 36px; opacity: .85; }
 }
 @media (prefers-reduced-motion: reduce) { .card-drawer .drawer-reference-details > summary > svg:last-child { transition: none; } }
+/* Live Figma text and surface styles, shared by view/edit/history drawers. */
+.card-drawer.design-drawer .drawer-reading,
+.card-drawer.design-drawer .drawer-reading p,
+.card-drawer.design-drawer .drawer-read-list li,
+.card-drawer.design-drawer .drawer-context-facts dt,
+.card-drawer.design-drawer .drawer-context-facts dd button > span,
+.card-drawer.design-drawer .drawer-context-facts dd button > span.unfilled,
+.card-drawer.design-drawer .drawer-reading-section-title > button,
+.card-drawer.design-drawer .drawer-read-dependencies li,
+.card-drawer.design-drawer .drawer-reference-details > summary,
+.card-drawer.design-drawer .drawer-reference-details > summary small {
+  color: var(--text-tertiary, #765a86);
+}
+.card-drawer.design-drawer .drawer-reading p { line-height: 1.5; }
+.card-drawer.design-drawer .drawer-reading h3,
+.card-drawer.design-drawer .drawer-reading strong {
+  color: var(--text-secondary, #614470);
+  line-height: 1.5;
+}
+.card-drawer.design-drawer .drawer-read-callout {
+  background: var(--surface-page, #faf8fd);
+  border-color: var(--border-strong, #d9c9e8);
+  border-radius: 0 var(--radius-md, 8px) var(--radius-md, 8px) 0;
+}
+.card-drawer.design-drawer .drawer-read-callout p { font-size: 16px; }
+.card-drawer.design-drawer .drawer-read-pencil,
+.card-drawer.design-drawer .drawer-read-dependencies li svg,
+.card-drawer.design-drawer .drawer-context-facts dd button > svg {
+  color: var(--icon-muted, #9a7bb0);
+}
+.card-drawer.design-drawer .drawer-read-source {
+  background: var(--surface-page, #faf8fd);
+  border-color: var(--border-subtle, #eae5ef);
+  border-radius: var(--radius-md, 8px);
+  color: var(--text-tertiary, #765a86);
+}
+.card-drawer.design-drawer .drawer-context-reading,
+.card-drawer.design-drawer .drawer-reference-details {
+  border-color: var(--border-subtle, #eae5ef);
+}
+.card-drawer.design-drawer .drawer-checklist-progress { color: var(--text-tertiary, #765a86); }
+.card-drawer.design-drawer .drawer-read-checklist .is-complete p {
+  color: var(--text-disabled, #a08ca9);
+}
+.card-drawer.design-drawer .drawer-context-facts dt,
+.card-drawer.design-drawer .drawer-context-facts dd button > span,
+.card-drawer.design-drawer .drawer-read-dependencies li { line-height: 1.5; }

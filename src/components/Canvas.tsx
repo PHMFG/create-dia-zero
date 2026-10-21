@@ -4,10 +4,11 @@ import {
   getSmoothStepPath, Handle, MarkerType, MiniMap, Panel, Position, ReactFlow,
   useNodesState, type Connection, type Edge, type EdgeProps, type Node, type NodeChange, type NodeProps, type ReactFlowInstance,
 } from '@xyflow/react';
-import { ArrowUpRight, Check, Circle, FileText, Flag, FlaskConical, GripHorizontal, HelpCircle, Lightbulb, Link2, Map as ContextMap, MapIcon, MessageCircle, Search, Sparkles, X } from 'lucide-react';
+import { Check, Circle, FileText, Flag, FlaskConical, GripHorizontal, HelpCircle, Lightbulb, Link2, Map as ContextMap, MapIcon, MessageCircle, Search, Sparkles, X } from 'lucide-react';
 import type { Block, CanvasCard, NodeKind, Project, Source } from '../../shared/types';
 import { canConnect, connectionId, synchronizeCanvasNodes, validateConnection } from '../../shared/canvasConnections';
 import { MediaBlock } from './MediaBlock';
+import { BrandArrow } from './BrandVisual';
 import './Canvas.css';
 
 export const kindLabels: Record<NodeKind, string> = { context: 'Seu contexto', hypothesis: 'Hipótese', research: 'Pesquisa', action: 'Próximo passo', evidence: 'Evidência', decision: 'Decisão', note: 'Anotação' };
@@ -84,16 +85,16 @@ const CreateCard = memo(function CreateCard({ data, selected }: Pick<NodeProps<C
     <textarea ref={titleField} className="card-title nodrag nopan" value={card.title} rows={1} onChange={event => onTitle(card.id, event.target.value)} maxLength={180} aria-label={`Título do cartão ${card.title}`} />
     <p className="card-summary">{card.summary}</p>
     {media.length > 0 && <div className="canvas-media-preview nodrag nopan nowheel">{media.map(block => <MediaBlock key={block.id} block={block} sources={data.sources} compact />)}</div>}
-    {checklist.length > 0 && <div className="card-checklist">{checklist.slice(0, 3).map(item => <button key={item.id} className={`nodrag nopan checklist-item ${item.checked ? 'checked' : ''}`} role="checkbox" aria-checked={item.checked} onClick={() => onCheck(card.id, item.blockId, item.id)}><span className="check-box">{item.checked && <Check size={11} />}</span><span>{item.text}</span></button>)}{checklist.length > 3 && <button className="nodrag nopan more-items" onClick={() => onOpen(card.id)}>+{checklist.length - 3} itens</button>}</div>}
+    {checklist.length > 0 && <div className="card-checklist">{checklist.slice(0, 3).map(item => <button key={item.id} className={`nodrag nopan checklist-item ${item.checked ? 'checked' : ''}`} role="checkbox" aria-checked={item.checked} onClick={() => onCheck(card.id, item.blockId, item.id)}><span className="check-box">{item.checked && <Check size={11} />}</span><span>{item.text}</span></button>)}{checklist.length > 3 && <button className="nodrag nopan more-items" onClick={() => onOpen(card.id)}>+{checklist.length - 3} {checklist.length === 4 ? 'item' : 'itens'}</button>}</div>}
     {!checklist.length && callout && <div className="card-callout"><Lightbulb size={14} /><span>{callout.text}</span></div>}
-    <div className="card-bottom"><span>{checklist.length ? <><span className="tiny-progress"><span style={{ width: `${checked / checklist.length * 100}%` }} /></span>{checked}/{checklist.length} passos</> : sourceCount ? <><Link2 size={12} />{sourceCount} {sourceCount === 1 ? 'fonte' : 'fontes'}</> : <><Circle size={6} fill="currentColor" />{card.origin === 'user' ? 'Por você' : card.origin === 'demo' ? 'Exemplo' : 'Em construção'}</>}</span><div className="card-inline-actions"><button className="card-clarify nodrag nopan" onClick={() => data.onClarify(card.id)} aria-label={`Esclarecer dúvidas sobre ${card.title}`} title="Esclarecer uma dúvida"><MessageCircle size={13} /></button><button className="card-about nodrag nopan" onClick={() => onOpen(card.id)}>Sobre <ArrowUpRight size={14} /></button></div></div>
+    <div className="card-bottom"><span>{checklist.length ? <><span className="tiny-progress"><span style={{ width: `${checked / checklist.length * 100}%` }} /></span>{checked}/{checklist.length} passos</> : sourceCount ? <><Link2 size={12} />{sourceCount} {sourceCount === 1 ? 'fonte' : 'fontes'}</> : <><Circle size={6} fill="currentColor" />{card.origin === 'user' ? 'Por você' : card.origin === 'demo' ? 'Exemplo' : 'Em construção'}</>}</span><div className="card-inline-actions"><button className="card-clarify nodrag nopan" onClick={() => data.onClarify(card.id)} aria-label={`Esclarecer dúvidas sobre ${card.title}`} title="Esclarecer uma dúvida"><MessageCircle size={13} /></button><button className="card-about nodrag nopan" onClick={() => onOpen(card.id)}>Sobre <BrandArrow size={14} /></button></div></div>
   </article>;
 });
 
 const CreateDependency = memo(function CreateDependency({ id, source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected, markerEnd }: EdgeProps<DependencyEdge>) {
   const [path, labelX, labelY] = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 20, offset: 28 });
   return <>
-    <BaseEdge id={id} path={path} markerEnd={markerEnd} interactionWidth={26} style={{ stroke: selected ? '#9c58cc' : '#c8b5dd', strokeWidth: selected ? 2.3 : 1.6 }} />
+    <BaseEdge id={id} path={path} markerEnd={markerEnd} interactionWidth={26} style={{ stroke: selected ? 'var(--border-brand)' : 'var(--border-selected)', strokeWidth: selected ? 2.3 : 1.6 }} />
     <EdgeLabelRenderer><div className={`canvas-edge-label nodrag nopan ${selected ? 'edge-selected' : ''}`} style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}>
       <span className="canvas-edge-description" title={data ? `${data.targetTitle} depende de ${data.sourceTitle}` : undefined}>{selected && data ? <><strong>{data.targetTitle}</strong> depende de <strong>{data.sourceTitle}</strong></> : 'Pré-requisito'}</span>
       {selected && data?.onDisconnect && <button type="button" onClick={event => { event.stopPropagation(); data.onDisconnect?.(source, target); }} aria-label={`Remover conexão de ${data.sourceTitle} para ${data.targetTitle}`} title="Remover conexão"><X size={13} /><span>Desconectar</span></button>}
@@ -102,7 +103,7 @@ const CreateDependency = memo(function CreateDependency({ id, source, target, so
 });
 const nodeTypes = { createCard: CreateCard };
 const edgeTypes = { createDependency: CreateDependency };
-const defaultEdgeOptions = { type: 'createDependency', markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: '#c8b5dd' } };
+const defaultEdgeOptions = { type: 'createDependency', markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: 'var(--border-selected)' } };
 
 export interface CanvasProps {
   project: Project; list?: boolean;
@@ -191,9 +192,9 @@ function GraphCanvas(props: CanvasProps) {
     connectionRadius={34} panOnDrag zoomOnScroll zoomOnPinch preventScrolling zoomOnDoubleClick={false}
     deleteKeyCode={null} defaultEdgeOptions={defaultEdgeOptions} aria-label="Canvas do seu projeto"
     ariaLabelConfig={{ 'controls.zoomIn.ariaLabel': 'Aproximar o canvas', 'controls.zoomOut.ariaLabel': 'Afastar o canvas', 'controls.fitView.ariaLabel': 'Enquadrar todos os cartões', 'minimap.ariaLabel': 'Visão geral do canvas' }}>
-    <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="#d8d0e1" />
+    <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="var(--border-strong)" />
     <Controls showInteractive={false} fitViewOptions={{ padding: 0.18, maxZoom: 1, duration: 260 }} />
-    {showMap && <MiniMap className="canvas-minimap" position="bottom-right" pannable zoomable nodeColor={node => (node.data as CardData).card.lane === 'now' ? '#b387d7' : '#e3d5ef'} maskColor="#fcfafe99" />}
+    {showMap && <MiniMap className="canvas-minimap" position="bottom-right" pannable zoomable nodeColor={node => (node.data as CardData).card.lane === 'now' ? 'var(--accent-soft)' : 'var(--surface-selected)'} maskColor="color-mix(in srgb, var(--surface-page) 60%, transparent)" />}
     <Panel position="bottom-right" className={`canvas-navigation-panel ${showMap ? 'map-open' : ''}`}>
       {showHelp && <div className="canvas-navigation-help"><strong>Seu espaço de trabalho</strong><p>Arraste o cabeçalho para mover. Ligue o ponto inferior ao superior de um cartão que depende dele. Clique na linha para ver a relação ou remover.</p><p>Arraste o fundo para navegar. Ajuste o zoom com a roda do mouse ou os controles.</p></div>}
       <div className="canvas-navigation-buttons">{currentAction && <button type="button" onClick={() => { void flow.current?.fitView({ nodes: [{ id: currentAction.id }], padding: 0.22, minZoom: 0.85, maxZoom: 1, duration: 260 }); }} aria-label="Ir ao próximo passo" title="Ir ao próximo passo"><Flag size={15} /></button>}<button type="button" className={showMap ? 'active' : ''} onClick={() => setShowMap(value => !value)} aria-pressed={showMap} aria-label={showMap ? 'Ocultar visão geral' : 'Mostrar visão geral'} title="Visão geral"><MapIcon size={15} /></button><button type="button" className={showHelp ? 'active' : ''} onClick={() => setShowHelp(value => !value)} aria-expanded={showHelp} aria-label={showHelp ? 'Fechar ajuda do canvas' : 'Como usar o canvas'} title="Como usar"><HelpCircle size={15} /></button></div>

@@ -4,6 +4,10 @@ Copiloto para quem está começando um negócio. A conversa organiza contexto e 
 
 Aplicativo público: **[create-dia-zero.vercel.app](https://create-dia-zero.vercel.app)**.
 
+## Wiki do projeto
+
+A [wiki da create](wiki/index.md) reúne produto, arquitetura, domínio, interface, IA, pesquisa, persistência, segurança e operação, com links para o código e datas das verificações. Para continuar o desenvolvimento em outro chat, comece pelo [AGENTS.md](AGENTS.md) e leia as páginas relacionadas à tarefa. O [estado das verificações](wiki/risks.md) distingue resultados locais atuais de registros anteriores de produção e design.
+
 ## Usar o aplicativo
 
 1. Conte sua ideia na tela inicial ou explore o exemplo Chabor, identificado como demonstração.

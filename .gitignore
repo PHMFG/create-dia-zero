@@ -8,3 +8,16 @@ dist/
 artifacts/
 playwright-report/
 test-results/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Extração de design local (não versionada)
+.design-export/
+
+# Editores, logs e cobertura
+.idea/
+.vscode/
+*.log
+coverage/

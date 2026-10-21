@@ -41,6 +41,6 @@ export default function PromptQueue({ items, cards, paused, busy = false, onRemo
         </li>;
       })}
     </ol>
-    {items.length > 3 && <button type="button" className="prompt-queue-expand" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Mostrar menos' : `Ver mais ${items.length - 3} perguntas`}</button>}
+    {items.length > 3 && <button type="button" className="prompt-queue-expand" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Mostrar menos' : `Ver mais ${items.length - 3} ${hiddenCount === 1 ? 'pergunta' : 'perguntas'}`}</button>}
   </section>;
 }

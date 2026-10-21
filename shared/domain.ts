@@ -29,8 +29,8 @@ function cardLayoutHeight(card:CanvasCard):number {
   // three summary lines, two checklist lines/item, and at most two media blocks.
   const titleLines=Math.min(3,Math.max(1,Math.ceil(card.title.length/24)));
   return 160+titleLines*28+Math.min(3,Math.max(1,Math.ceil(card.summary.length/30)))*24
-    +checklist.reduce((height,item)=>height+Math.max(44,Math.min(2,Math.max(1,Math.ceil(item.text.length/27)))*22+10),0)
-    +(checklist.length?14+(checklist.length-1)*8:0)
+    +checklist.reduce((height,item)=>height+Math.max(44,Math.min(2,Math.max(1,Math.ceil(item.text.length/27)))*24+12),0)
+    +(checklist.length?16+(checklist.length-1)*8:0)
     +(card.blocks.filter(b=>b.type==='checklist').flatMap(b=>b.items??[]).length>3?30:0)
     +(callout?Math.min(3,Math.max(1,Math.ceil((callout.text?.length??0)/30)))*22+40:0)
     +media.reduce((height,b)=>height+(b?.type==='image'?200:b?.type==='location'?180:130),0)

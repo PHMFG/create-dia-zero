@@ -1,31 +1,34 @@
-.prompt-queue { flex: 0 0 auto; margin: 0 18px 10px; border: 1px solid #e8dcf1; border-radius: 10px; background: #fcf9ff; color: #765486; font-size: 13px; overflow: hidden; }
-.prompt-queue-heading { min-height: 38px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #eee5f4; }
+.prompt-queue { flex: 0 0 auto; font-family: Inter, sans-serif; line-height: 1.5; margin: 0 18px 10px; border: 1px solid var(--border-default); border-radius: var(--radius-lg); background: var(--surface-page); color: var(--text-secondary); font-size: 13px; overflow: hidden; }
+.prompt-queue-heading { min-height: 38px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--border-subtle); }
 .prompt-queue-heading > div:first-child, .prompt-queue-paused, .prompt-queue-paused button { display: flex; align-items: center; gap: 6px; }
-.prompt-queue-heading > div:first-child > svg { color: #a374bd; flex-shrink: 0; }
-.prompt-queue-heading strong { font-size: 13px; line-height: 1.35; font-weight: 500; color: #745181; }
-.prompt-queue-count { display: inline-grid; place-items: center; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 6px; background: #f1e7f8; color: #89649b; font-size: 12px; }
-.prompt-queue-running, .prompt-queue-paused > span { font-size: 12px; color: #947ba2; white-space: nowrap; }
-.prompt-queue-paused > span { color: #a16f58; }
-.prompt-queue-paused button { min-height: 30px; padding: 4px 7px; border-radius: 6px; color: #82549a; background: #f4eafb; font-size: 12px; }
-.prompt-queue-paused button:hover { background: #eee0f7; }
-.prompt-queue-items { list-style: none; margin: 0; padding: 4px 9px; display: grid; gap: 2px; max-height: 168px; overflow-y: auto; scrollbar-width: thin; }
-.prompt-queue-items li { display: flex; align-items: flex-start; gap: 8px; min-width: 0; padding: 6px 1px; }
-.prompt-queue-order { display: grid; place-items: center; flex: 0 0 20px; height: 20px; border-radius: 6px; background: #f4edf8; color: #9477a4; font-size: 12px; }
+.prompt-queue-heading > div:first-child > svg { color: var(--icon-muted); flex-shrink: 0; }
+.prompt-queue-heading strong { font-size: 13px; line-height: 1.5; font-weight: 500; color: var(--text-secondary); }
+.prompt-queue-count { display: inline-grid; place-items: center; min-width: 19px; height: 19px; padding: 0 4px; border-radius: var(--radius-sm); background: var(--surface-selected); color: var(--text-tertiary); font-size: 12px; }
+.prompt-queue-running, .prompt-queue-paused > span { font-size: 12px; color: var(--text-tertiary); white-space: nowrap; }
+.prompt-queue-paused > span { color: var(--text-warning); }
+.prompt-queue-paused button { min-height: 30px; padding: 4px 8px; border-radius: var(--radius-sm); color: var(--text-tertiary); background: var(--surface-subtle); font-size: 12px; }
+.prompt-queue-paused button:hover { background: var(--surface-selected); }
+.prompt-queue-items { list-style: none; margin: 0; padding: 4px 12px; display: grid; gap: 2px; max-height: 168px; overflow-y: auto; scrollbar-width: thin; }
+.prompt-queue-items li { display: flex; align-items: flex-start; gap: 8px; min-width: 0; padding: 6px 0; }
+.prompt-queue-order { display: grid; place-items: center; flex: 0 0 20px; height: 20px; border-radius: var(--radius-sm); background: var(--surface-subtle); color: var(--text-tertiary); font-size: 12px; }
 .prompt-queue-copy { flex: 1; min-width: 0; }
-.prompt-queue-destination { display: block; color: #916fa1; font-size: 12px; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.prompt-queue-copy p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; margin: 2px 0 0; color: #685575; font-size: 13px; line-height: 1.4; }
-.prompt-queue-remove { display: grid; place-items: center; width: 30px; height: 30px; flex: 0 0 30px; border-radius: 6px; color: #a080b1; }
-.prompt-queue-remove:hover { background: #f4eafb; color: #8c4fa9; }
-.prompt-queue-remove:focus-visible, .prompt-queue-expand:focus-visible, .prompt-queue-paused button:focus-visible { outline: 2px solid #ae7bca; outline-offset: 2px; }
-.prompt-queue-expand { display: block; padding: 3px 10px 8px; color: #865d9b; font-size: 12px; text-decoration: underline; text-underline-offset: 2px; }
+.prompt-queue-destination { display: block; color: var(--text-tertiary); font-size: 12px; line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prompt-queue-copy p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; margin: 2px 0 0; color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+.prompt-queue-remove { display: grid; place-items: center; width: 30px; height: 30px; flex: 0 0 30px; border-radius: var(--radius-sm); color: var(--icon-muted); }
+.prompt-queue-remove:hover { background: var(--surface-subtle); color: var(--icon-brand); }
+.prompt-queue-remove:focus-visible, .prompt-queue-expand:focus-visible, .prompt-queue-paused button:focus-visible { outline: 2px solid var(--border-brand); outline-offset: 2px; }
+.prompt-queue-expand { display: block; min-height: 30px; padding: 4px 12px 8px; color: var(--text-tertiary); font-size: 12px; line-height: 1.4; text-align: left; }
 .card-mini-chat .prompt-queue { margin: 0 12px 8px; }
 .card-mini-chat .prompt-queue-heading { padding: 5px 8px; }
-.card-mini-chat .prompt-queue-heading strong { font-size: 12px; }
+.card-mini-chat .prompt-queue-heading strong { font-size: 13px; }
 .card-mini-chat .prompt-queue-running, .card-mini-chat .prompt-queue-paused > span { font-size: 11px; }
 .card-mini-chat .prompt-queue-items { max-height: 126px; padding: 3px 7px; }
-.card-mini-chat .prompt-queue-copy p { font-size: 12px; }
+.card-mini-chat .prompt-queue-copy p { font-size: 13px; }
 .mini-chat-send-actions { display: flex; align-items: center; gap: 5px; flex: 0 0 auto; }
 @media (max-width: 480px) {
   .prompt-queue { margin-left: 12px; margin-right: 12px; }
   .prompt-queue-running { white-space: normal; text-align: right; }
 }
+.prompt-queue-destination, .prompt-queue-running, .prompt-queue-paused > span, .prompt-queue-order, .prompt-queue-count { line-height: 1.4; }
+.prompt-queue-paused button:disabled { color: var(--text-disabled); opacity: .55; }
+@media (max-width: 760px) { .prompt-queue-remove { width: 40px; height: 40px; flex-basis: 40px; } .prompt-queue-paused button, .prompt-queue-expand { min-height: 40px; } }

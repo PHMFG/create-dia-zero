@@ -1,0 +1,197 @@
+/* Synced from create/Fundamentos and the updated Figma component library, 2026-10-06. */
+:root {
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --motion-duration-160: 160ms;
+  --motion-duration-200: 200ms;
+  --motion-duration-260: 260ms;
+  --motion-duration-320: 320ms;
+  --text-primary: #2a2134;
+  --text-secondary: #614470;
+  --text-tertiary: #765a86;
+  --text-disabled: #b1a3bd;
+  --text-brand: #7a2fe0;
+  --text-on-brand: #ffffff;
+  --text-danger: #b3261e;
+  --text-warning: #8a5300;
+  --text-success: #27704a;
+  --surface-page: #faf8fd;
+  --surface-raised: #ffffff;
+  --surface-subtle: #f5effd;
+  --surface-selected: #efe6fb;
+  --surface-brand: #8438f5;
+  --surface-brand-hover: #7a2fe0;
+  --surface-danger: #fdecec;
+  --surface-warning: #fff4e0;
+  --surface-success: #eef6ef;
+  --surface-danger-strong: #b3261e;
+  --border-subtle: #eae5ef;
+  --border-default: #e7deef;
+  --border-strong: #d9c9e8;
+  --border-selected: #bfa0dd;
+  --border-brand: #8438f5;
+  --border-on-brand: #ffffff;
+  --border-danger: #b3261e;
+  --icon-default: #765a86;
+  --icon-muted: #9a7bb0;
+  --icon-brand: #8438f5;
+  --icon-on-brand: #ffffff;
+  --icon-danger: #b3261e;
+  --icon-warning: #8a5300;
+  --icon-success: #27704a;
+  --accent-soft: #bfa0dd;
+  --accent-magenta: #ce00ee;
+  --category-action: #a370c7;
+  --category-evidence: #8fa492;
+  --category-research: #87a0b8;
+  --category-decision: #b989ba;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-full: 999px;
+  --space-2: 2px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
+  --space-80: 80px;
+  --space-96: 96px;
+  --space-120: 120px;
+  --font-ui: 'Inter', sans-serif;
+  --heading: var(--font-ui);
+  --purple: var(--surface-brand);
+  --magenta: var(--accent-magenta);
+  --ink: var(--text-primary);
+  --muted: var(--text-tertiary);
+  --border: var(--border-subtle);
+  --lavender: var(--surface-subtle);
+  --soft: var(--surface-page);
+  --white: var(--surface-raised);
+  --elevation-1: 0 1px 2px #2a21340a, 0 2px 8px #2a21340f;
+  --elevation-2: 0 2px 4px #2a21340a, 0 8px 24px #2a21341a;
+  --elevation-3: 0 4px 8px #2a21340f, 0 16px 48px #2a213429;
+}
+body { font-family: var(--font-ui); color: var(--text-primary); background: var(--surface-page); }
+button, input, textarea, select { font-family: var(--font-ui); }
+button { transition: background-color var(--motion-duration-160), border-color var(--motion-duration-160), color var(--motion-duration-160); }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--border-brand);
+  outline-offset: 3px;
+}
+.wordmark { font-family: var(--font-ui); font-weight: 300; }
+.wordmark .logo-dot { background: var(--accent-magenta); }
+.wordmark.light .logo-dot { background: var(--text-on-brand); }
+.primary-button, .secondary-button { border-radius: var(--radius-md); font-size: 14px; font-weight: 500; line-height: 1.5; }
+.primary-button { background: var(--surface-brand); color: var(--text-on-brand); box-shadow: var(--elevation-1); }
+.primary-button:hover { background: var(--surface-brand-hover); }
+.secondary-button { color: var(--text-tertiary); background: var(--surface-raised); border-color: var(--border-default); }
+.secondary-button:hover { background: var(--surface-subtle); border-color: var(--border-strong); }
+.text-button, .subtle { color: var(--text-tertiary); }
+.icon-button { color: var(--icon-default); border-radius: var(--radius-md); }
+.icon-button:hover { color: var(--icon-brand); background: var(--surface-subtle); }
+.eyebrow { font-size: 11px; font-weight: 600; line-height: 1.4; letter-spacing: .08em; color: var(--text-tertiary); }
+.field-label { color: var(--text-tertiary); }
+.field-label input, .field-label textarea, .field-label select { border-color: var(--border-default); border-radius: var(--radius-md); color: var(--text-secondary); background: var(--surface-raised); }
+.field-label input::placeholder, .field-label textarea::placeholder { color: var(--text-tertiary); }
+.form-error, .danger-text { color: var(--text-danger); }
+.workspace-loading { background: var(--surface-page); }
+.workspace-loading .wordmark { font-size: 46px; }
+.workspace-loading > p { color: var(--text-tertiary); font-size: 11px; line-height: 1.4; }
+.about-modal { padding: 32px; border-radius: var(--radius-2xl); border: 1px solid var(--border-default); box-shadow: var(--elevation-3); }
+.about-modal h2 { font-size: 32px; line-height: 1.2; letter-spacing: -.5px; font-weight: 400; color: var(--text-primary); }
+.about-modal > p { font-size: 16px; line-height: 1.5; color: var(--text-tertiary); }
+.about-modal > p.subtle { font-size: 14px; line-height: 1.5; }
+.about-modal .about-steps { padding: 20px 0; gap: 12px; border-color: var(--border-subtle); }
+.about-modal .about-steps span { font-size: 11px; line-height: 1.4; color: var(--text-tertiary); }
+.about-modal .primary-button { border-radius: var(--radius-lg); margin-left: auto; display: flex; gap: 12px; }
+.global-toast { color: var(--text-secondary); background: var(--surface-raised); border-color: var(--border-default); border-radius: var(--radius-lg); box-shadow: var(--elevation-2); }
+
+/* The workspace keeps its native responsive layout and live interactions. */
+.workspace-design .workspace-header { background: var(--surface-raised); border-color: var(--border-subtle); }
+.workspace-design .workspace-wordmark { font-size: 34px; line-height: 34px; font-weight: 300; letter-spacing: -1.9px; }
+.workspace-design .workspace-wordmark .logo-dot { width: 5px; height: 5px; }
+.workspace-design .header-separator { background: var(--surface-selected); }
+.workspace-design .project-menu-trigger { color: var(--text-secondary); font-size: 14px; line-height: 1.5; }
+.workspace-design .project-menu-trigger > svg { color: var(--icon-muted); }
+.workspace-design .header-export { color: var(--text-tertiary); }
+.workspace-design .demo-badge { font-size: 11px; line-height: 1.4; letter-spacing: .08em; font-weight: 600; border-radius: var(--radius-xs); padding: 6px 8px; background: var(--surface-subtle); color: var(--text-tertiary); }
+.workspace-design .save-indicator.saved { color: var(--icon-success); }
+.workspace-design .save-indicator.saving { color: var(--icon-muted); }
+.workspace-design .save-indicator.error { color: var(--icon-danger); }
+.workspace-design .sidebar-toggle { color: var(--icon-default); }
+.workspace-design .dropdown-menu { background: var(--surface-raised); border-color: var(--border-default); border-radius: var(--radius-lg); box-shadow: var(--elevation-3); }
+.workspace-design .dropdown-menu button { color: var(--text-secondary); border-radius: var(--radius-md); }
+.workspace-design .dropdown-menu button:hover, .workspace-design .selected-project { background: var(--surface-selected); }
+.workspace-design .dropdown-menu .danger-text { color: var(--text-danger); }
+.workspace-design .project-menu-label, .workspace-design .project-menu-info { font-size: 11px; line-height: 1.4; color: var(--text-tertiary); border-color: var(--border-subtle); }
+.workspace-design .collapsible-sidebar { background: var(--surface-raised); border-color: var(--border-subtle); }
+.workspace-design .collapsible-sidebar-head > span { font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--text-tertiary); }
+.workspace-design .collapsible-sidebar nav > button, .workspace-design .collapsible-sidebar-bottom > button, .workspace-design .collapsible-sidebar-bottom > p { color: var(--text-tertiary); }
+.workspace-design .collapsible-sidebar nav > button { border-radius: var(--radius-md); }
+.workspace-design .collapsible-sidebar nav > button.active { color: var(--text-secondary); background: var(--surface-selected); }
+.workspace-design .collapsible-sidebar-bottom { border-color: var(--border-subtle); }
+.workspace-design .chat-panel { background: var(--surface-raised); border-color: var(--border-subtle); }
+.workspace-design .chat-messages { padding: 24px 24px 16px; }
+.workspace-design .chat-message { gap: 12px; margin-bottom: 24px; font-size: 16px; line-height: 1.5; }
+.workspace-design .assistant-avatar { display: inline-block; width: 48px; height: 48px; flex: 0 0 48px; padding: 0; }
+.workspace-design .message-content { min-width: 0; color: var(--text-secondary); }
+.workspace-design .message-user .message-content { font-size: 16px; line-height: 1.5; color: var(--text-secondary); background: var(--surface-subtle); border-color: var(--border-subtle); border-radius: var(--radius-lg); }
+.workspace-design .message-content a { color: var(--text-brand); }
+.workspace-design .message-sources a { color: var(--text-tertiary); background: var(--surface-subtle); border-color: var(--border-default); border-radius: var(--radius-sm); }
+.workspace-design .activity-status { color: var(--text-tertiary); font-size: 12px; line-height: 1.4; }
+.workspace-design .chat-welcome { color: var(--text-secondary); font-size: 16px; line-height: 1.5; }
+.workspace-design .chat-welcome button { color: var(--text-brand); background: var(--surface-subtle); border-color: var(--border-default); border-radius: var(--radius-md); }
+.workspace-design .chat-composer { padding: 0 20px 16px; background: var(--surface-raised); }
+.workspace-design .chat-composer form { padding: 12px 16px; border-color: var(--border-default); border-radius: var(--radius-lg); background: var(--surface-raised); box-shadow: var(--elevation-1); }
+.workspace-design .chat-composer textarea { font-size: 16px; line-height: 1.5; color: var(--text-secondary); }
+.workspace-design .chat-composer textarea::placeholder { color: var(--text-tertiary); }
+.workspace-design .composer-bottom > span { color: var(--text-tertiary); font-size: 12px; line-height: 1.4; }
+.workspace-design .send-button { background: var(--surface-selected); color: var(--icon-muted); border-radius: var(--radius-md); }
+.workspace-design .send-button:not(:disabled):hover { background: var(--surface-brand); color: var(--icon-on-brand); }
+.send-button:not(:disabled):hover img { filter: brightness(0) invert(1); }
+.workspace-design .send-button.cancel { background: var(--surface-brand); color: var(--icon-on-brand); }
+.workspace-design .workspace-error { background: var(--surface-danger); border-color: var(--border-danger); color: var(--text-danger); border-radius: var(--radius-md); }
+.workspace-design .plan-panel { background: var(--surface-page); }
+.workspace-design .canvas-container { background: var(--surface-page); }
+.workspace-design .canvas-toolbar { gap: 12px; }
+.workspace-design .canvas-toolbar .view-toggle, .workspace-design .canvas-toolbar .canvas-actions { background: var(--surface-raised); border-color: var(--border-default); border-radius: var(--radius-lg); box-shadow: var(--elevation-2); }
+.workspace-design .canvas-toolbar .view-toggle { padding: 4px; }
+.workspace-design .view-toggle button { color: var(--text-tertiary); border-radius: var(--radius-sm); padding: 8px 12px; line-height: 1.5; }
+.workspace-design .view-toggle button.active { background: var(--surface-subtle); color: var(--text-tertiary); }
+.workspace-design .canvas-toolbar .canvas-actions { padding: 4px 6px; }
+.workspace-design .canvas-actions > button, .workspace-design .canvas-actions .research-trigger span { color: var(--text-tertiary); font-size: 13px; line-height: 1.5; }
+.workspace-design .canvas-actions .research-trigger { color: var(--text-tertiary) !important; }
+.workspace-design .canvas-actions > button:hover { background: var(--surface-subtle); color: var(--text-brand); }
+.workspace-design .canvas-actions > button > .brand-arrow { display: inline-block; }
+.workspace-design .canvas-toolbar .toolbar-evidence { background: var(--surface-subtle) !important; color: var(--text-tertiary); border-radius: var(--radius-sm); padding: 8px !important; }
+.workspace-design .canvas-live-update { border-color: var(--border-default); border-radius: var(--radius-lg); color: var(--text-secondary); box-shadow: var(--elevation-2); }
+.workspace-design .canvas-live-update svg { color: var(--icon-brand); }
+.workspace-design .empty-canvas { color: var(--text-tertiary); }
+.workspace-design .empty-canvas h3 { color: var(--text-primary); font-size: 22px; line-height: 1.25; font-weight: 500; }
+.workspace-design .mobile-tabs { background: var(--surface-page); border-color: var(--border-subtle); }
+.workspace-design .mobile-tabs > button { color: var(--text-tertiary); }
+.workspace-design .mobile-tabs > button.active { color: var(--text-brand); background: var(--surface-selected); }
+@media (max-width: 1050px) {
+  .workspace-design .chat-messages { padding: 20px 18px 16px; }
+  .workspace-design .chat-composer { padding-right: 14px; padding-left: 14px; }
+}
+@media (max-width: 760px) {
+  .about-modal { padding: 28px 20px 20px; }
+  .about-modal h2 { font-size: 22px; line-height: 1.25; font-weight: 500; }
+  .workspace-design .workspace-wordmark { font-size: 30px; line-height: 30px; }
+  .workspace-design .project-menu-trigger { font-size: 13px; }
+  .workspace-design .chat-messages { padding: 20px 18px; }
+  .workspace-design .chat-composer { padding-right: 18px; padding-left: 18px; }
+  .workspace-design .collapsible-sidebar { box-shadow: var(--elevation-3); }
+  .workspace-design .canvas-toolbar { gap: 8px; }
+  .workspace-design .view-toggle button { min-height: 40px; }
+  .workspace-design .canvas-actions > button { min-height: 40px; min-width: 40px; }
+}

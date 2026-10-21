@@ -1,0 +1,168 @@
+/* Figma live: 101:2180, 101:3325, 105:974, 105:3046, 107:4511, 107:5292. */
+.modal.create-modal {
+  padding: 32px;
+  border: 1px solid var(--border-default, #e7deef);
+  border-radius: var(--radius-2xl, 20px);
+  background: var(--surface-raised, #fff);
+  color: var(--text-primary, #2a2134);
+  box-shadow: 0 16px 48px rgb(42 33 52 / 16%), 0 4px 8px rgb(42 33 52 / 6%);
+  max-height: calc(100dvh - 76px);
+}
+.create-modal .modal-close {
+  top: 17px; right: 18px; width: 40px; height: 40px;
+  border-radius: var(--radius-md, 8px);
+}
+.create-modal .modal-close img { flex-shrink: 0; }
+.create-modal .eyebrow {
+  font: 600 11px/1.4 var(--heading);
+  letter-spacing: .88px;
+  color: var(--text-tertiary, #765a86);
+  margin: 0 24px 0 0;
+}
+.modal.create-modal h2 {
+  font: 400 32px/1.2 var(--heading);
+  letter-spacing: -.5px;
+  color: var(--text-primary, #2a2134);
+  margin: 12px 20px 0 0;
+}
+.create-modal > p, .create-modal .modal-scroll-body > p {
+  font-size: 16px; line-height: 1.5;
+  color: var(--text-tertiary, #765a86);
+  margin: 16px 0 0;
+}
+.create-modal .field-label {
+  font-size: 13px; font-weight: 500; line-height: 1.5;
+  gap: 8px; margin: 16px 0 0;
+  color: var(--text-tertiary, #765a86);
+}
+.create-modal .field-label:first-of-type { margin-top: 24px; }
+.create-modal .field-label > span { font-size: 12px; line-height: 1.4; color: var(--text-tertiary, #765a86); }
+.create-modal .field-label input,
+.create-modal .field-label textarea,
+.create-modal .field-label select {
+  border-color: var(--border-default, #e7deef);
+  border-radius: var(--radius-md, 8px);
+  background: var(--surface-raised, #fff);
+  color: var(--text-secondary, #614470);
+  font-size: 16px; font-weight: 500; line-height: 1.5;
+  padding: 10px 12px;
+}
+.create-modal .field-label select {
+  min-height: 44px;
+  padding: 9px 32px 9px 16px;
+  appearance: none;
+  background-image: url('/figma/dialog-select-chevron.svg');
+  background-position: right 10px center;
+  background-size: 10px 6px;
+  background-repeat: no-repeat;
+}
+.create-modal .field-label textarea { padding: 12px; }
+.create-modal .field-label textarea::placeholder { color: var(--text-tertiary, #765a86); opacity: 1; }
+.create-modal .field-label input:focus, .create-modal .field-label textarea:focus, .create-modal .field-label select:focus {
+  border-color: var(--border-selected, #bfa0dd);
+}
+.create-modal .primary-button, .create-modal .secondary-button {
+  border-radius: var(--radius-lg, 12px);
+  height: 44px; min-height: 44px; font-size: 14px; line-height: 1.5;
+  gap: 12px; padding: 12px 16px; font-weight: 500;
+}
+.create-modal .primary-button { background: var(--surface-brand, #8438f5); color: var(--text-on-brand, #fff); }
+.create-modal .secondary-button { border-color: var(--border-default, #e7deef); background: var(--surface-raised, #fff); color: var(--text-primary, #2a2134); }
+.create-modal .primary-button:disabled { opacity: .55; }
+.create-modal.delete-project-modal .primary-button { background: var(--surface-danger-strong, #b3261e); }
+.create-modal.delete-project-modal .primary-button:hover { background: var(--surface-danger-strong, #b3261e); }
+.create-modal .evidence-actions { display: flex; justify-content: flex-end; }
+.create-modal .evidence-footer { padding-top: 16px; }
+.create-modal .evidence-footer .dialog-footnote {
+  font-size: 11px !important; line-height: 1.4 !important;
+  color: var(--text-tertiary, #765a86) !important;
+  margin: 16px 0 0 !important; text-align: right;
+}
+.create-modal.evidence-modal .field-label:nth-last-of-type(2) textarea { height: 142px; }
+.create-modal.evidence-modal .field-label:last-of-type textarea { height: 70px; }
+.create-modal .modal-actions { margin-top: 24px; gap: 12px; }
+.create-modal .proposal-change {
+  border-color: var(--border-subtle, #eae5ef);
+  margin-top: 24px; padding-top: 20px;
+}
+.create-modal .proposal-change > .kind-label { font-size: 11px; font-weight: 500; line-height: 1.4; color: var(--text-tertiary, #765a86); }
+.create-modal .before-after { gap: 16px; margin-top: 16px; }
+.create-modal .before-after > div {
+  padding: 16px; border-color: var(--border-subtle, #eae5ef);
+  background: var(--surface-page, #faf8fd); border-radius: var(--radius-md, 8px);
+}
+.create-modal .before-after > div:last-child {
+  background: var(--surface-subtle, #f5effd); border-color: var(--border-strong, #d9c9e8);
+}
+.create-modal .before-after > div > span { font-size: 11px; line-height: 1.4; font-weight: 600; letter-spacing: .88px; color: var(--text-tertiary, #765a86); }
+.create-modal .before-after h4 { font: 500 18px/1.3 var(--heading); color: var(--text-tertiary, #765a86); margin: 8px 0; }
+.create-modal .before-after p { font-size: 14px; line-height: 1.5; color: var(--text-tertiary, #765a86); margin: 0; }
+.create-modal .comparison-arrow { display: block; width: 20px; height: 20px; transform: none; }
+.create-modal .form-error { font-size: 13px; line-height: 1.5; }
+.create-modal .source-reference { background: var(--surface-page, #faf8fd); border-color: var(--border-default, #e7deef); }
+.create-modal .source-reference-title { font-size: 16px; line-height: 1.5; font-weight: 500; color: var(--text-secondary, #614470); }
+.create-modal .source-reference > p { font-size: 14px; line-height: 1.5; color: var(--text-tertiary, #765a86); }
+.create-modal .source-reference > small { font-size: 12px; line-height: 1.4; color: var(--text-tertiary, #765a86); }
+.create-modal .empty-small { font-size: 14px; line-height: 1.5; color: var(--text-tertiary, #765a86); }
+.create-modal .about-steps { color: var(--text-tertiary, #765a86); font-size: 14px; line-height: 1.5; border-color: var(--border-subtle, #eae5ef); margin-top: 24px; }
+.create-modal.about-modal > .subtle { font-size: 14px; line-height: 1.5; color: var(--text-tertiary, #765a86); }
+
+.card-drawer.design-drawer {
+  width: min(530px, 100vw); background: var(--surface-raised, #fff);
+  border-color: var(--border-default, #e7deef);
+  box-shadow: -16px 0 48px rgb(42 33 52 / 16%), -4px 0 8px rgb(42 33 52 / 6%);
+}
+.design-drawer .drawer-header { padding: 16px 24px 8px; flex-shrink: 0; }
+.design-drawer .drawer-header .kind-label { font-size: 13px; font-weight: 500; line-height: 1.5; color: var(--text-tertiary, #765a86); }
+.design-drawer .drawer-header .icon-button { width: 40px; height: 40px; border-radius: var(--radius-md, 8px); }
+.design-drawer .drawer-heading { padding: 4px 24px 16px; flex-shrink: 0; }
+.design-drawer .drawer-heading .eyebrow { font-size: 11px; font-weight: 600; line-height: 1.4; letter-spacing: .88px; color: var(--text-tertiary, #765a86); margin-bottom: 10px; }
+.design-drawer .drawer-title { font: 400 32px/1.2 var(--heading); letter-spacing: -.5px; color: var(--text-primary, #2a2134); background: var(--surface-raised, #fff); }
+.design-drawer .drawer-summary { font-size: 16px; line-height: 1.5; color: var(--text-tertiary, #765a86); background: var(--surface-raised, #fff); }
+.design-drawer .drawer-meta { gap: 12px; }
+.design-drawer .drawer-meta select { font-size: 13px; line-height: 1.5; color: var(--text-tertiary, #765a86); background: var(--surface-page, #faf8fd); border-color: var(--border-default, #e7deef); min-height: 34px; }
+.design-drawer .drawer-meta > span { font-size: 12px; line-height: 1.4; color: var(--text-tertiary, #765a86); }
+.design-drawer .drawer-tabs { padding: 0 24px; gap: 24px; border-color: var(--border-subtle, #eae5ef); }
+.design-drawer .drawer-tabs button { font-size: 14px; line-height: 1.5; padding: 12px 0; color: var(--text-tertiary, #765a86); }
+.design-drawer .drawer-tabs button.active { color: var(--text-tertiary, #765a86); border-color: var(--border-selected, #bfa0dd); }
+.design-drawer .drawer-scroll { min-height: 0; padding: 20px 24px; }
+.design-drawer .drawer-footer { padding: 16px 24px; gap: 8px; border-color: var(--border-subtle, #eae5ef); }
+.design-drawer .drawer-footer .primary-button,
+.design-drawer .drawer-footer .secondary-button { border-radius: var(--radius-lg, 12px); min-height: 42px; font-size: 14px; line-height: 1.5; gap: 12px; padding: 12px; }
+.design-drawer .drawer-footer .secondary-button { background: var(--surface-raised, #fff); border-color: var(--border-default, #e7deef); color: var(--text-tertiary, #765a86); }
+.design-drawer .drawer-footer .primary-button, .design-drawer .drawer-footer .secondary-button { height: 42px; }
+.design-drawer .drawer-footer .primary-button { background: var(--surface-brand, #8438f5); color: var(--text-on-brand, #fff); }
+.design-drawer .editable-block { border-color: var(--border-default, #e7deef); border-radius: var(--radius-md, 8px); background: var(--surface-raised, #fff); }
+.design-drawer .block-callout { background: var(--surface-page, #faf8fd); }
+.design-drawer .block-textarea, .design-drawer .editable-item textarea { color: var(--text-tertiary, #765a86); font-size: 16px; line-height: 1.5; }
+.design-drawer .block-heading .block-textarea { font-size: 22px; line-height: 1.25; font-weight: 500; letter-spacing: -.2px; }
+.design-drawer .block-toolbar > span { font-size: 12px; line-height: 1.4; color: var(--text-tertiary, #765a86); }
+.design-drawer .block-picker { border-color: var(--border-default, #e7deef); border-radius: var(--radius-md, 8px); background: var(--surface-raised, #fff); }
+.design-drawer .add-item, .design-drawer .add-block, .design-drawer .block-picker button { font-size: 14px; line-height: 1.5; color: var(--text-tertiary, #765a86); }
+.design-drawer .drawer-section, .design-drawer .drawer-reference-details { border-color: var(--border-subtle, #eae5ef); }
+.design-drawer .drawer-section h3 { color: var(--text-secondary, #614470); font-size: 16px; font-weight: 500; line-height: 1.5; }
+.design-drawer .drawer-section > .subtle, .design-drawer .dependency-options label { color: var(--text-tertiary, #765a86); font-size: 14px; line-height: 1.5; }
+.design-drawer .source-reference { background: var(--surface-page, #faf8fd); border-color: var(--border-default, #e7deef); }
+.design-drawer .source-reference-title { color: var(--text-secondary, #614470); font-size: 16px; line-height: 1.5; }
+.design-drawer .source-reference > p, .design-drawer .revision-list p { color: var(--text-tertiary, #765a86); font-size: 14px; line-height: 1.5; }
+.design-drawer .source-reference small, .design-drawer .revision-list small { color: var(--text-tertiary, #765a86); font-size: 12px; line-height: 1.4; }
+.design-drawer .revision-list h4 { color: var(--text-secondary, #614470); font-size: 16px; line-height: 1.5; }
+
+@media (max-width: 760px) {
+  .design-modal-backdrop { padding: 38px 16px; }
+  .modal.create-modal { padding: 32px 24px 24px; border-radius: var(--radius-xl, 16px); max-height: calc(100dvh - 76px); }
+  .modal.create-modal h2 { font-size: 22px; line-height: 1.25; font-weight: 500; letter-spacing: -.2px; }
+  .modal.create-modal.evidence-modal, .modal.create-modal.proposal-modal { display: flex; flex-direction: column; height: calc(100dvh - 76px); overflow: hidden; }
+  .create-modal .modal-scroll-body { flex: 1; min-height: 0; overflow-y: auto; width: 100%; overscroll-behavior: contain; }
+  .create-modal .evidence-footer { flex-shrink: 0; width: 100%; border-top: 1px solid var(--border-subtle, #eae5ef); padding-top: 12px; }
+  .create-modal .evidence-actions > button { width: 100%; }
+  .create-modal .evidence-footer .dialog-footnote { text-align: center; }
+  .create-modal .proposal-footer { flex-shrink: 0; width: 100%; border-top: 1px solid var(--border-subtle, #eae5ef); padding-top: 16px; margin-top: 0; gap: 8px; }
+  .create-modal .proposal-footer button { height: 52px; padding: 12px; min-width: 0; }
+  .create-modal .before-after { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .create-modal .comparison-arrow { justify-self: center; }
+  .card-drawer.design-drawer { width: 100%; }
+  .design-drawer .drawer-header, .design-drawer .drawer-heading,
+  .design-drawer .drawer-scroll, .design-drawer .drawer-footer { padding-left: 20px; padding-right: 20px; }
+  .design-drawer .drawer-title { font-size: 22px; line-height: 1.25; font-weight: 500; letter-spacing: -.2px; }
+}

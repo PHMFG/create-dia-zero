@@ -39,7 +39,7 @@ O [mapa de testes](testing.md) detalha comportamentos cobertos e as ações com 
 | `docs/architecture.md` descreve Inter Tight na abertura. | `src/main.tsx` carrega Inter 300/400/500/600 e `src/design-system.css` redefine a fonte UI/cabeçalhos para Inter. | Para o design ativo, use [design-system.md](design-system.md) e os imports atuais. |
 | `docs/verification.md` contém 153, 170 e 178 testes; a nota de design registra 190. | A suíte ativa continua com 178 casos em 12 arquivos; o comando padrão inclui 12 casos de duas cópias em `.design-export/`, totalizando 190. | Há etapas históricas e escopos de coleta distintos. O aumento até 190 não representa 12 casos novos do aplicativo ativo. |
 | `.design-export/README.md` e `updates/implementation-notes.md` registram contagens diferentes de componentes/variáveis. | Os documentos descrevem extração inicial e revisão posterior. | Preserve a cronologia; uma contagem local não comprova o arquivo Figma atual. |
-| README chama o aplicativo de público e descreve serviços configurados. | URLs e configuração externa não foram verificadas nesta tarefa. | Consulte o estado real antes de afirmar disponibilidade ou agir sobre a implantação. |
+| `docs/verification.md` registra a URL pública e os serviços configurados em 3 de outubro de 2026. | Em 21 de outubro de 2026, a URL respondeu 503 com a implantação pausada. O README atual não cita URL nem infraestrutura e lista a demo pública como pendente. | Consulte o estado real antes de afirmar disponibilidade ou agir sobre a implantação. |
 
 ## Limites que afetam o produto
 

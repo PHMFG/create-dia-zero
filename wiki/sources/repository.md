@@ -6,6 +6,8 @@ status: mixed
 sources:
   - ../../package.json
   - ../../README.md
+  - ../../README.pt-BR.md
+  - ../../LICENSE
   - ../../docs/architecture.md
   - ../../docs/verification.md
   - ../../docs/verification-db.md
@@ -39,7 +41,9 @@ O lockfile dá as versões resolvidas; não é uma implementação de comportame
 
 | Fonte | Data e escopo | Uso correto |
 | --- | --- | --- |
-| [README](../../README.md) | Guia de uso e operação existente. | Porta de entrada; estado de serviços requer atualização externa. |
+| [README](../../README.md) e [README.pt-BR.md](../../README.pt-BR.md) | Apresentação bilíngue reescrita em 21 de outubro de 2026: recursos, instalação sem chaves, uso, galeria, Roadmap e créditos. | Porta de entrada pública; não registra estado de serviços. As imagens estão em `docs/assets/`. |
+| [LICENSE](../../LICENSE) | Licença MIT adotada em 21 de outubro de 2026. | Termos de uso do código. |
+| `docs/assets/` | Banners, capturas do demo Chabor em modo local sem chaves, GIF e social preview, de 21 de outubro de 2026. | Ilustração do README com dados fictícios; não é QA visual contínuo. |
 | [docs/architecture.md](../../docs/architecture.md) | Síntese anterior do MVP. | Contexto dos mecanismos; conferir código e design ativos. |
 | [docs/verification.md](../../docs/verification.md) | Etapas de 3 de outubro de 2026, incluindo produção e cancelamento. | Evidência histórica delimitada a cada execução. |
 | [docs/verification-db.md](../../docs/verification-db.md) | SQL e advisors de 3 de outubro de 2026. | Registro histórico; não auditoria atual do serviço. |

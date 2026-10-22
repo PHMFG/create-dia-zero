@@ -36,3 +36,11 @@ As alterações desta tarefa são documentais. IA real, pesquisa, SQL remoto, di
 **Verificações:** os links Markdown locais das páginas alteradas resolvem para arquivos rastreados; `git diff --check` passou. A mudança é documental: testes, build e serviços não foram executados.
 
 **Complemento:** as fontes de frontmatter que apontavam para `.design-export/` saíram de [design](design-system.md), [testes](testing.md), [riscos](risks.md) e [fontes](sources/repository.md); o texto dessas páginas continua citando os caminhos como arquivos locais. Em [riscos](risks.md), o estado de publicação passou a registrar que as mudanças de design estão commitadas e que a pasta é ignorada. Todas as fontes locais de frontmatter e os links locais da wiki resolvem para arquivos rastreados.
+
+## [2026-10-21] docs | README bilíngue e licença MIT
+
+**Escopo:** o `README.md` passou a ser a apresentação em inglês, com `README.pt-BR.md` equivalente, `LICENSE` MIT e imagens em `docs/assets/` capturadas do demo Chabor no modo local sem chaves. O README atual não registra URL pública, IDs nem detalhes da implantação.
+
+**Resultado:** [operação](operations.md), [riscos](risks.md), [decisões](decisions.md) e [fontes](sources/repository.md) deixaram de descrever o README anterior. As fontes passaram a citar os dois READMEs, a licença e as imagens.
+
+**Verificações:** num clone limpo, com apenas `.env.example` copiado, `npm ci`, `npm test` (12 arquivos, 178 testes), `npm run typecheck`, `npm run build` e `npm run dev` em modo local passaram com Node `25.9.0` e npm `11.12.1`. A URL pública registrada em `docs/verification.md` respondeu 503, com a implantação pausada. Os links locais e as fontes de frontmatter da wiki resolvem para arquivos rastreados; `git diff --check` passou.

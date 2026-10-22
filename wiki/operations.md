@@ -1,7 +1,7 @@
 ---
 title: Operação local e build
 kind: topic
-updated: 2026-10-07
+updated: 2026-10-21
 status: code-verified
 sources:
   - ../package.json
@@ -20,6 +20,7 @@ sources:
   - ../.vercelignore
   - ../.env.example
   - ../README.md
+  - ../README.pt-BR.md
   - ../docs/verification.md
   - ../docs/verification-db.md
 ---
@@ -74,7 +75,7 @@ Os scripts smoke exigem URL como argumento; não são chamados por `npm test` ou
 
 `supabase/schema.sql` e `supabase/cancellation.sql` são mudanças de banco: abrem transação, criam/alteram tabelas, índices, políticas, funções e grants, e terminam em `commit`. O segundo arquivo deve vir depois do schema. `supabase/tests/security.sql` pressupõe ambos instalados e uma conexão com privilégios de banco; cria dois usuários e fixtures, alterna papéis e claims para testar RLS, limites e cancelamento, e termina com `rollback`. Esses arquivos foram lidos, mas nenhum foi aplicado ou executado nesta tarefa. Veja [persistence.md](persistence.md) e [security.md](security.md) antes de qualquer operação de banco.
 
-O README registra uma URL de aplicativo e verificações anteriores. O estado público depende de serviço externo e não foi consultado aqui; os resultados históricos em [docs/verification.md](../docs/verification.md) e [docs/verification-db.md](../docs/verification-db.md) não confirmam a disponibilidade atual.
+Desde 21 de outubro de 2026, o [README](../README.md) em inglês e o [README.pt-BR.md](../README.pt-BR.md) apresentam o projeto, a instalação sem chaves e as variáveis opcionais; não registram URL pública, IDs nem estado da implantação. Nessa data, os comandos de instalação, teste, typecheck, build e `npm run dev` do README passaram num clone limpo com apenas `.env.example` copiado (Node `25.9.0`, npm `11.12.1`), e a URL pública registrada em [docs/verification.md](../docs/verification.md) respondeu 503 com a implantação pausada. Os resultados históricos desse relatório e de [docs/verification-db.md](../docs/verification-db.md) não confirmam a disponibilidade atual.
 
 ## Resultado local observado em 2026-10-07
 

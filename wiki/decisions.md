@@ -1,7 +1,7 @@
 ---
 title: Decisões observáveis na implementação
 kind: synthesis
-updated: 2026-10-07
+updated: 2026-10-21
 status: code-verified
 sources:
   - ../shared/domain.ts
@@ -11,6 +11,8 @@ sources:
   - ../src/lib/projectMerge.ts
   - ../supabase/cancellation.sql
   - ../server/dev.ts
+  - ../README.md
+  - ../AGENTS.md
 ---
 
 # Decisões observáveis na implementação
@@ -47,6 +49,6 @@ Reservas por `runId` controlam idempotência, uma geração ativa por projeto, l
 
 ## Dev integrado com reinício manual
 
-O comando principal usa `tsx server/dev.ts`, com API e Vite juntos, e não reinicia automaticamente o backend. O README relaciona essa escolha à continuidade das conversas durante edições. `dev:watch` fica disponível para alterações isoladas; `preview` não serve a API. Fontes: [package.json](../package.json), [server/dev.ts](../server/dev.ts), [operação](operations.md).
+O comando principal usa `tsx server/dev.ts`, com API e Vite juntos, e não reinicia automaticamente o backend. O README orienta reiniciar o processo depois de mudanças no backend, e o [AGENTS.md](../AGENTS.md) registra o motivo: `dev:watch` reinicia o servidor e pode interromper uma conversa. `dev:watch` fica disponível para alterações isoladas; `preview` não serve a API. Fontes: [package.json](../package.json), [server/dev.ts](../server/dev.ts), [operação](operations.md).
 
 Novas escolhas que mudem esses contratos devem atualizar esta página, as páginas específicas e o [log](log.md). Consulte o [índice](index.md) e o [mapa de fontes](sources/repository.md).
